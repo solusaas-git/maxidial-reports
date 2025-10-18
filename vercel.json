@@ -1,0 +1,12 @@
+{
+  "buildCommand": "npm run build",
+  "outputDirectory": ".next",
+  "framework": "nextjs",
+  "regions": ["iad1"],
+  "env": {
+    "ADVERSUS_API_URL": "@adversus-api-url",
+    "ADVERSUS_API_USERNAME": "@adversus-api-username",
+    "ADVERSUS_API_PASSWORD": "@adversus-api-password"
+  }
+}
+
