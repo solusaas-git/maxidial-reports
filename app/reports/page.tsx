@@ -230,6 +230,48 @@ function ReportsPageContent() {
       if (selectedReport === 'campaign-analytics') {
         // Generate Campaign Analytics charts
         console.log('Generating charts for Campaign Analytics Report...');
+        
+        if (reportData.data.campaignAnalytics && reportData.data.campaignAnalytics.length > 0) {
+          // Calls by Campaign chart
+          const campaignsWithCalls = reportData.data.campaignAnalytics.filter((c: any) => c.totalCalls > 0);
+          const topCampaigns = campaignsWithCalls.slice(0, 10);
+          
+          if (topCampaigns.length > 0) {
+            charts['campaign-calls-bar'] = await ClientChartGenerator.generateBarChart({
+              labels: topCampaigns.map((campaign: any) => campaign.campaignName),
+              datasets: [
+                { label: 'Total Calls', data: topCampaigns.map((c: any) => c.totalCalls), backgroundColor: '#3b82f6' },
+                { label: 'Answered', data: topCampaigns.map((c: any) => c.answeredCalls || 0), backgroundColor: '#10b981' }
+              ]
+            }, {
+              plugins: { legend: { display: true } }
+            });
+          }
+          
+          // Lead Conversion Rate chart
+          const campaignsWithLeads = reportData.data.campaignAnalytics.filter((c: any) => c.totalLeads > 0);
+          const topCampaignsByLeads = campaignsWithLeads.slice(0, 10);
+          
+          if (topCampaignsByLeads.length > 0) {
+            charts['campaign-conversion-bar'] = await ClientChartGenerator.generateBarChart({
+              labels: topCampaignsByLeads.map((campaign: any) => campaign.campaignName),
+              datasets: [{ label: 'Conversion Rate %', data: topCampaignsByLeads.map((c: any) => parseFloat(c.conversionRate || '0')), backgroundColor: '#10b981' }]
+            }, {
+              plugins: { legend: { display: false } }
+            });
+            
+            // Leads vs Conversions chart
+            charts['campaign-leads-bar'] = await ClientChartGenerator.generateBarChart({
+              labels: topCampaignsByLeads.map((campaign: any) => campaign.campaignName),
+              datasets: [
+                { label: 'Total Leads', data: topCampaignsByLeads.map((c: any) => c.totalLeads), backgroundColor: '#3b82f6' },
+                { label: 'Converted', data: topCampaignsByLeads.map((c: any) => c.convertedLeads || 0), backgroundColor: '#10b981' }
+              ]
+            }, {
+              plugins: { legend: { display: true } }
+            });
+          }
+        }
       }
 
     } catch (error) {

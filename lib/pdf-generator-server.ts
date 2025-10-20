@@ -144,6 +144,9 @@ export class ServerPDFGenerator {
         await this.generateAgentPerformancePage(reportData);
         break;
       case 'campaign-analytics':
+        // Campaign Analytics page
+        this.addPage();
+        this.currentY = this.pageMargin;
         await this.generateCampaignAnalyticsPDF(reportData);
         break;
       default:
@@ -894,8 +897,8 @@ export class ServerPDFGenerator {
   private async generateCampaignAnalyticsPDF(reportData: ReportData) {
     const { summary, data } = reportData;
     
-    // Summary cards - match web version exactly (5 cards)
-    this.addSectionTitle('🎯 Campaign Analytics Report');
+    // Summary cards
+    this.addSectionTitle('Summary');
     
     const summaryCards = [
       { label: 'Total Campaigns', value: summary.totalCampaigns?.toString() || '0', color: this.colors.primary },
@@ -905,7 +908,79 @@ export class ServerPDFGenerator {
       { label: 'Total Duration', value: this.formatDuration(summary.totalDuration || 0), color: this.colors.warning },
     ];
     
-    this.addMetricCards(summaryCards, 5);
+    this.addMetricCards(summaryCards, 4);
+    
+    this.currentY += 30;
+    
+    // Calls by Campaign chart
+    if (this.needsNewPage(250)) {
+      this.addPage();
+    }
+    
+    this.addSectionTitle('Calls by Campaign');
+    
+    const campaignsWithCalls = data.campaignAnalytics?.filter((c: any) => c.totalCalls > 0) || [];
+    const topCampaigns = campaignsWithCalls.slice(0, 10);
+    
+    if (topCampaigns.length > 0) {
+      await this.addBarChart(
+        topCampaigns.map((campaign: any) => ({
+          label: this.truncateText(campaign.campaignName, 12),
+          value: campaign.totalCalls || 0,
+          color: this.colors.primary
+        })),
+        'Campaign',
+        'Total Calls',
+        'campaign-calls-bar'
+      );
+    }
+    
+    this.currentY += 30;
+    
+    // Lead Conversion Rate chart
+    if (this.needsNewPage(250)) {
+      this.addPage();
+    }
+    
+    this.addSectionTitle('Lead Conversion Rate by Campaign');
+    
+    const campaignsWithLeads = data.campaignAnalytics?.filter((c: any) => c.totalLeads > 0) || [];
+    const topCampaignsByLeads = campaignsWithLeads.slice(0, 10);
+    
+    if (topCampaignsByLeads.length > 0) {
+      await this.addBarChart(
+        topCampaignsByLeads.map((campaign: any) => ({
+          label: this.truncateText(campaign.campaignName, 12),
+          value: parseFloat(campaign.conversionRate || '0'),
+          color: this.colors.success
+        })),
+        'Campaign',
+        'Conversion Rate (%)',
+        'campaign-conversion-bar'
+      );
+    }
+    
+    this.currentY += 30;
+    
+    // Leads vs Conversions chart
+    if (this.needsNewPage(250)) {
+      this.addPage();
+    }
+    
+    this.addSectionTitle('Leads vs Conversions by Campaign');
+    
+    if (topCampaignsByLeads.length > 0) {
+      await this.addBarChart(
+        topCampaignsByLeads.map((campaign: any) => ({
+          label: this.truncateText(campaign.campaignName, 12),
+          value: campaign.totalLeads || 0,
+          color: this.colors.indigo
+        })),
+        'Campaign',
+        'Total Leads',
+        'campaign-leads-bar'
+      );
+    }
     
     this.currentY += 30;
     
@@ -915,7 +990,7 @@ export class ServerPDFGenerator {
     this.addSectionTitle('Campaign Performance Details');
     
     if (data.campaignAnalytics && data.campaignAnalytics.length > 0) {
-      // Match web version table headers exactly (19 columns)
+      // Match web version table headers exactly (17 columns)
       const tableHeaders = [
         'Campaign', 'Status', 'Total Calls', 'Inbound', 'Outbound', 'Answered', 'Missed', 
         'Busy', 'Congestion', 'Total Talk Time', 'Avg Duration', 'Answer Rate', 
