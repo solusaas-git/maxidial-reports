@@ -113,6 +113,7 @@ function ReportsPageContent() {
 
   const generateChartsForReport = async (): Promise<Record<string, string>> => {
     const charts: Record<string, string> = {};
+    console.log('🎯 Starting chart generation for report:', selectedReport);
 
     try {
       // First, fetch the report data to generate accurate charts
@@ -164,6 +165,10 @@ function ReportsPageContent() {
       }
 
       if (selectedReport === 'call-summary') {
+        console.log('📊 Generating Call Summary charts...');
+        console.log('Outbound calls data:', reportData.data.outboundCalls?.length || 0);
+        console.log('Inbound calls data:', reportData.data.inboundCalls?.length || 0);
+        
         // Generate Call Summary charts
         if (reportData.data.outboundCalls && reportData.data.outboundCalls.length > 0) {
           // Daily outbound calls chart
@@ -183,6 +188,7 @@ function ReportsPageContent() {
           const totalCalls = dates.map(date => dailyData[date].total);
           const answeredCalls = dates.map(date => dailyData[date].answered);
 
+          console.log('📈 Generating daily-outbound-bar chart...');
           charts['daily-outbound-bar'] = await ClientChartGenerator.generateBarChart({
             labels: dates,
             datasets: [
@@ -192,6 +198,7 @@ function ReportsPageContent() {
           }, {
             plugins: { legend: { display: true } }
           });
+          console.log('✅ Generated daily-outbound-bar chart');
         }
 
         // Generate pie charts for call status distribution
@@ -398,6 +405,7 @@ function ReportsPageContent() {
 
     } catch (error) {
       console.error('Error generating charts:', error);
+      console.error('Chart generation error details:', error);
       // Continue without charts rather than failing completely
     }
 
