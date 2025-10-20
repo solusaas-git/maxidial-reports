@@ -698,7 +698,7 @@ export class ServerPDFGenerator {
       this.addPage();
     }
     
-    this.addSectionTitle('Agent Performance Overview');
+    this.addSectionTitle('Agent Performance Comparison');
     
     if (data.agentPerformance && data.agentPerformance.length > 0) {
       const chartData = data.agentPerformance
@@ -718,27 +718,58 @@ export class ServerPDFGenerator {
     this.currentY += 15;
     
     // Detailed agent table
-    if (this.needsNewPage(200)) {
+    if (this.needsNewPage(300)) {
       this.addPage();
     }
     
     this.addSectionTitle('Agent Performance Details');
     
     if (data.agentPerformance && data.agentPerformance.length > 0) {
-      const tableHeaders = ['Agent', 'Calls', 'Leads', 'Converted', 'Rate'];
+      // Calculate ranks like in web report
+      const agentsWithCalls = data.agentPerformance.filter((a: any) => 
+        a.totalCalls >= 5 && 
+        a.convertedLeads > 0 && 
+        a.agentId !== 0
+      );
+      const sortedByEfficiency = agentsWithCalls.sort((a: any, b: any) => {
+        const aConversionRate = parseFloat(a.conversionRate || '0');
+        const bConversionRate = parseFloat(b.conversionRate || '0');
+        
+        if (aConversionRate !== bConversionRate) {
+          return bConversionRate - aConversionRate;
+        }
+        
+        const aCalls = a.totalCalls || 0;
+        const bCalls = b.totalCalls || 0;
+        return aCalls - bCalls;
+      });
+
+      const tableHeaders = ['Rank', 'Agent', 'Calls', 'Inbound', 'Outbound', 'Answered', 'Missed', 'Talk Time', 'Avg Duration', 'Answer Rate', 'Leads', 'Converted', 'Rate'];
       const tableRows = data.agentPerformance
         .filter((agent: any) => agent.agentId !== 0)
-        .sort((a: any, b: any) => b.totalCalls - a.totalCalls)
-        .slice(0, 15)
-        .map((agent: any) => [
-          agent.agentName || `Agent ${agent.agentId}`,
-          agent.totalCalls.toString(),
-          agent.totalLeads.toString(),
-          agent.convertedLeads.toString(),
-          `${agent.conversionRate}%`
-        ]);
+        .map((agent: any) => {
+          const rank = (agent.totalCalls >= 5 && agent.convertedLeads > 0) 
+            ? sortedByEfficiency.findIndex((a: any) => a.agentId === agent.agentId) + 1 
+            : null;
+          
+          return [
+            rank ? `#${rank}` : '-',
+            agent.agentName || `Agent ${agent.agentId}`,
+            agent.totalCalls.toString(),
+            (agent.inboundCalls || 0).toString(),
+            (agent.outboundCalls || 0).toString(),
+            agent.answeredCalls.toString(),
+            agent.missedCalls.toString(),
+            this.formatDuration(agent.totalTalkTime || agent.totalConversationTime),
+            this.formatDuration(agent.avgDuration),
+            `${agent.answerRate}%`,
+            agent.totalLeads.toString(),
+            agent.convertedLeads.toString(),
+            `${agent.conversionRate}%`
+          ];
+        });
       
-      this.addTable(tableHeaders, tableRows, [150, 80, 80, 80, 80]);
+      this.addTable(tableHeaders, tableRows, [40, 120, 50, 50, 50, 50, 50, 60, 60, 60, 50, 60, 50]);
     }
   }
 
