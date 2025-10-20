@@ -13,7 +13,7 @@ if (process.env.VERCEL) {
     const originalResolve = Module.prototype.require.resolve;
     
     // Intercept all require('canvas') calls and redirect to @napi-rs/canvas
-    Module.prototype.require = function(id: string) {
+    Module.prototype.require = function(this: any, id: string) {
       if (id === 'canvas') {
         console.log('[PDFKit Wrapper] Redirecting canvas require to @napi-rs/canvas');
         return originalRequire.call(this, '@napi-rs/canvas');
@@ -22,7 +22,7 @@ if (process.env.VERCEL) {
     } as any;
     
     // Also intercept require.resolve() calls
-    Module.prototype.require.resolve = function(id: string, options?: any) {
+    Module.prototype.require.resolve = function(this: any, id: string, options?: any) {
       if (id === 'canvas') {
         console.log('[PDFKit Wrapper] Redirecting canvas resolve to @napi-rs/canvas');
         return originalResolve.call(this, '@napi-rs/canvas', options);
