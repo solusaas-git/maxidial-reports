@@ -118,7 +118,6 @@ export class ServerPDFGenerator {
     // Cover page first
     this.doc.addPage();
     this.addCoverPage(reportData, options);
-    this.addPageNumber(1, 4); // page 1 of 4
     
     // Generate report based on type
     switch (reportData.reportType) {
@@ -127,19 +126,16 @@ export class ServerPDFGenerator {
         this.addPage();
         this.currentY = this.pageMargin; // no header on content pages
         await this.generateOutboundPage(reportData);
-        this.addPageNumber(2, 4); // page 2 of 4
         
         // Inbound
         this.addPage();
         this.currentY = this.pageMargin;
         await this.generateInboundPage(reportData);
-        this.addPageNumber(3, 4); // page 3 of 4
         
         // VS
         this.addPage();
         this.currentY = this.pageMargin;
         await this.generateComparisonPage(reportData);
-        this.addPageNumber(4, 4); // page 4 of 4
         break;
       case 'agent-performance':
         await this.generateAgentPerformancePDF(reportData);
@@ -1329,59 +1325,6 @@ export class ServerPDFGenerator {
       
       this.currentY += rowHeight;
     });
-  }
-
-  /**
-   * Add page number to current page
-   */
-  private addPageNumber(pageNum: number, totalPages: number) {
-    const footerY = this.pageHeight - this.pageMargin + 5;
-    
-    this.doc
-      .fontSize(9)
-      .fillColor(this.colors.gray)
-      .font('Helvetica')
-      .text(
-        `Page ${pageNum} of ${totalPages}`,
-        this.pageMargin,
-        footerY,
-        {
-          width: this.contentWidth,
-          align: 'center'
-        }
-      );
-  }
-
-  /**
-   * Add page numbers to all pages
-   */
-  private addPageNumbers() {
-    // Get the actual number of pages that have been created
-    const range = (this.doc as any).bufferedPageRange();
-    const pageCount = range.count;
-    
-    console.log(`[PDF Generator] Adding page numbers to ${pageCount} pages`);
-    
-    for (let i = 0; i < pageCount; i++) {
-      this.doc.switchToPage(i);
-      
-      // Add page number at bottom center, inside margins
-      const footerY = this.pageHeight - this.pageMargin + 5;
-      
-      this.doc
-        .fontSize(9)
-        .fillColor(this.colors.gray)
-        .font('Helvetica')
-        .text(
-          `Page ${i + 1} of ${pageCount}`,
-          this.pageMargin,
-          footerY,
-          {
-            width: this.contentWidth,
-            align: 'center'
-          }
-        );
-    }
   }
 
   /**
