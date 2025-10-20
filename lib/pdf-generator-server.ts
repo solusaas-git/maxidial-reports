@@ -768,8 +768,12 @@ export class ServerPDFGenerator {
           ];
         });
       
-      // Use wider column widths for landscape page (14 columns)
-      this.addTable(tableHeaders, tableRows, [50, 150, 60, 60, 60, 60, 60, 80, 80, 80, 80, 60, 70, 60]);
+      // Use optimized column widths for landscape page (14 columns) - ensure all fit
+      const columnWidths = [40, 120, 50, 50, 50, 50, 50, 70, 70, 70, 70, 50, 60, 50];
+      const totalWidth = columnWidths.reduce((sum, width) => sum + width, 0);
+      console.log(`[PDF] Table total width: ${totalWidth}, content width: ${this.contentWidth}, page width: ${this.pageWidth}`);
+      
+      this.addTable(tableHeaders, tableRows, columnWidths);
     }
   }
 
