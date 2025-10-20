@@ -114,13 +114,25 @@ export class ServerPDFGenerator {
     if (options.chartImages) {
       this.chartImages = options.chartImages;
     }
-    // Add header to first page
-    this.addHeader(reportData, options);
+
+    // Cover page first
+    this.addCoverPage(reportData, options);
     
     // Generate report based on type
     switch (reportData.reportType) {
       case 'call-summary':
-        await this.generateCallSummaryPDF(reportData);
+        // Outbound
+        this.addPage();
+        this.addHeader(reportData, options);
+        await this.generateOutboundPage(reportData);
+        // Inbound
+        this.addPage();
+        this.addHeader(reportData, options);
+        await this.generateInboundPage(reportData);
+        // VS
+        this.addPage();
+        this.addHeader(reportData, options);
+        await this.generateComparisonPage(reportData);
         break;
       case 'agent-performance':
         await this.generateAgentPerformancePDF(reportData);
@@ -136,6 +148,66 @@ export class ServerPDFGenerator {
     this.addPageNumbers();
     
     return this.doc;
+  }
+
+  /**
+   * Add a dedicated cover page
+   */
+  private addCoverPage(reportData: ReportData, options: PDFGeneratorOptions) {
+    const appName = 'Maxi Dial Reports';
+    const title = options.title || this.getReportTitle(reportData.reportType);
+    const { startDate, endDate } = options.dateRange || reportData.dateRange;
+    const period = `${format(new Date(startDate), 'MMM d, yyyy')} to ${format(new Date(endDate), 'MMM d, yyyy')}`;
+    const generated = format(new Date(reportData.generatedAt || Date.now()), 'P, p');
+
+    // Reset currentY for a fresh page layout
+    this.currentY = this.pageMargin;
+
+    // Try to render logo top-left similar to header, but larger center content
+    const logoPath = path.join(process.cwd(), 'public', 'logos', 'logo_maxidial.png');
+    const centerX = this.pageWidth / 2;
+
+    try {
+      if (fs.existsSync(logoPath)) {
+        const logoWidth = 64;
+        const logoHeight = 64;
+        const logoX = centerX - (logoWidth / 2);
+        const logoY = this.currentY + 60;
+        this.doc.image(logoPath, logoX, logoY, { width: logoWidth, height: logoHeight });
+        this.currentY = logoY + logoHeight + 20;
+      }
+    } catch {}
+
+    // App name
+    this.doc
+      .font('Helvetica-Bold')
+      .fontSize(24)
+      .fillColor(this.colors.primary)
+      .text(appName, 0, this.currentY, { width: this.pageWidth, align: 'center' });
+    this.currentY += 40;
+
+    // Report title
+    this.doc
+      .font('Helvetica-Bold')
+      .fontSize(20)
+      .fillColor(this.colors.darkGray)
+      .text(title, 0, this.currentY, { width: this.pageWidth, align: 'center' });
+    this.currentY += 24;
+
+    // Report period
+    this.doc
+      .font('Helvetica')
+      .fontSize(12)
+      .fillColor(this.colors.gray)
+      .text(`Report Period: ${period}`, 0, this.currentY, { width: this.pageWidth, align: 'center' });
+    this.currentY += 18;
+
+    // Generated timestamp
+    this.doc
+      .font('Helvetica')
+      .fontSize(12)
+      .fillColor(this.colors.gray)
+      .text(`Generated: ${generated}`, 0, this.currentY, { width: this.pageWidth, align: 'center' });
   }
 
   /**
