@@ -145,7 +145,8 @@ export class ServerPDFGenerator {
         throw new Error(`Unknown report type: ${reportData.reportType}`);
     }
     
-    // Add page numbers (footer area inside margins)
+    // Finalize all pages and add page numbers
+    this.doc.flushPages();
     this.addPageNumbers();
     
     return this.doc;
@@ -1332,19 +1333,30 @@ export class ServerPDFGenerator {
    * Add page numbers to all pages
    */
   private addPageNumbers() {
+    // Get the actual number of pages that have been created
     const range = (this.doc as any).bufferedPageRange();
     const pageCount = range.count;
+    
+    console.log(`[PDF Generator] Adding page numbers to ${pageCount} pages`);
+    
     for (let i = 0; i < pageCount; i++) {
       this.doc.switchToPage(i);
-      const footerY = this.pageHeight - this.pageMargin + 5; // inside bottom margin
+      
+      // Add page number at bottom center, inside margins
+      const footerY = this.pageHeight - this.pageMargin + 5;
+      
       this.doc
         .fontSize(9)
         .fillColor(this.colors.gray)
         .font('Helvetica')
-        .text(`Page ${i + 1} of ${pageCount}`,
+        .text(
+          `Page ${i + 1} of ${pageCount}`,
           this.pageMargin,
           footerY,
-          { width: this.contentWidth, align: 'center' }
+          {
+            width: this.contentWidth,
+            align: 'center'
+          }
         );
     }
   }
