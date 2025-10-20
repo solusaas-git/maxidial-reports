@@ -717,10 +717,8 @@ export class ServerPDFGenerator {
     
     this.currentY += 15;
     
-    // Detailed agent table
-    if (this.needsNewPage(300)) {
-      this.addPage();
-    }
+    // Detailed agent table - use landscape page for better fit
+    this.addLandscapePage();
     
     this.addSectionTitle('Agent Performance Details');
     
@@ -769,7 +767,8 @@ export class ServerPDFGenerator {
           ];
         });
       
-      this.addTable(tableHeaders, tableRows, [40, 120, 50, 50, 50, 50, 50, 60, 60, 60, 50, 60, 50]);
+      // Use wider column widths for landscape page
+      this.addTable(tableHeaders, tableRows, [50, 150, 60, 60, 60, 60, 60, 80, 80, 80, 60, 70, 60]);
     }
   }
 
@@ -1473,6 +1472,14 @@ export class ServerPDFGenerator {
    */
   private addPage() {
     this.doc.addPage();
+    this.currentY = this.pageMargin;
+  }
+
+  /**
+   * Add a landscape page
+   */
+  private addLandscapePage() {
+    this.doc.addPage({ size: [842, 595] }); // A4 landscape dimensions
     this.currentY = this.pageMargin;
   }
 
