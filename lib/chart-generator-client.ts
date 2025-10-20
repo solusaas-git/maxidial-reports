@@ -69,8 +69,13 @@ export class ClientChartGenerator {
           options: {
             ...options,
             responsive: false,
-            maintainAspectRatio: true,
+            maintainAspectRatio: false,
             aspectRatio: 1, // Square aspect ratio (600:600)
+            // Force exact dimensions for pie charts
+            ...(type === 'pie' ? {
+              devicePixelRatio: 1,
+              resizeDelay: 0
+            } : {}),
             plugins: {
               ...options?.plugins,
               legend: {
@@ -115,13 +120,19 @@ export class ClientChartGenerator {
             // Special configuration for pie charts to ensure perfect circle
             ...(type === 'pie' ? {
               cutout: 0,
-              radius: '80%',
+              radius: '70%',
               elements: {
                 arc: {
                   borderWidth: 1,
                   borderColor: '#ffffff'
                 }
-              }
+              },
+              layout: {
+                padding: 20
+              },
+              // Force circular shape
+              circumference: 2 * Math.PI,
+              rotation: 0
             } : {}),
             animation: {
               onComplete: () => {
