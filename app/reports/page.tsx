@@ -254,7 +254,8 @@ function ReportsPageContent() {
 
         // Generate inbound charts
         if (reportData.data.calls && reportData.data.calls.length > 0) {
-          const inboundCalls = reportData.data.calls.filter((call: any) => call.direction === 'inbound');
+          const getDirection = (c: any) => (c.direction || c.type || '').toString().toLowerCase();
+          const inboundCalls = reportData.data.calls.filter((call: any) => getDirection(call) === 'inbound');
           
           if (inboundCalls.length > 0) {
             // Daily inbound calls chart
