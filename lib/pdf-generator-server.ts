@@ -1,5 +1,4 @@
 import PDFDocument from './pdfkit-wrapper';
-import { ChartJSNodeCanvas } from 'chartjs-node-canvas';
 import { format } from 'date-fns';
 import { ReportData } from './report-generator';
 import path from 'path';
@@ -11,11 +10,12 @@ interface PDFGeneratorOptions {
     startDate: string;
     endDate: string;
   };
+  chartImages?: Record<string, string>; // Pre-generated chart images (base64)
 }
 
 export class ServerPDFGenerator {
   private doc: PDFKit.PDFDocument;
-  private chartGenerator: ChartJSNodeCanvas;
+  private chartImages: Record<string, string> = {};
   private pageMargin = 50;
   private pageWidth = 595.28; // A4 width in points
   private pageHeight = 841.89; // A4 height in points
@@ -38,7 +38,7 @@ export class ServerPDFGenerator {
     white: '#ffffff',
   };
 
-  constructor() {
+  constructor(chartImages?: Record<string, string>) {
     // Fonts are already set up by the API route at runtime
     // PDFKit will find them in the data/ directory relative to the route file
     console.log(`[PDF Generator] Initializing PDFDocument`);
@@ -57,18 +57,48 @@ export class ServerPDFGenerator {
     this.contentWidth = this.pageWidth - (this.pageMargin * 2);
     this.currentY = this.pageMargin;
     
-    // Initialize chart generator with better aspect ratio
-    this.chartGenerator = new ChartJSNodeCanvas({ 
-      width: 800, 
-      height: 300, // Reduced from 400 for more compact charts
-      backgroundColour: 'white'
-    });
+    // Store pre-generated chart images
+    if (chartImages) {
+      this.chartImages = chartImages;
+      console.log(`[PDF Generator] Loaded ${Object.keys(chartImages).length} pre-generated chart images`);
+    }
+  }
+
+  /**
+   * Embed a base64 image into the PDF
+   */
+  private embedBase64Image(base64Image: string, width?: number, height?: number) {
+    try {
+      // Remove the data:image/png;base64, prefix if present
+      const base64Data = base64Image.replace(/^data:image\/\w+;base64,/, '');
+      const imageBuffer = Buffer.from(base64Data, 'base64');
+      
+      const imgWidth = width || (this.contentWidth * 0.9);
+      const imgHeight = height || ((300 * imgWidth) / 800);
+      
+      this.doc.image(imageBuffer, this.pageMargin, this.currentY, {
+        width: imgWidth,
+        height: imgHeight
+      });
+      
+      this.currentY += imgHeight + 10;
+    } catch (error) {
+      console.error('[PDF Generator] Failed to embed image:', error);
+      // Add placeholder text if image fails
+      this.doc.fontSize(10).fillColor(this.colors.danger)
+        .text('Chart could not be generated', this.pageMargin, this.currentY);
+      this.currentY += 20;
+    }
   }
 
   /**
    * Generate PDF for any report type
    */
   async generatePDF(reportData: ReportData, options: PDFGeneratorOptions = {}): Promise<PDFKit.PDFDocument> {
+    // Store chart images from options
+    if (options.chartImages) {
+      this.chartImages = options.chartImages;
+    }
     // Add header to first page
     this.addHeader(reportData, options);
     
