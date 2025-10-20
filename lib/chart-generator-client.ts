@@ -52,10 +52,10 @@ export class ClientChartGenerator {
   ): Promise<string> {
     return new Promise((resolve, reject) => {
       try {
-        // Create a canvas element - square format for clean, direct charts
+        // Create a canvas element - rectangular format for charts
         const canvas = document.createElement('canvas');
-        canvas.width = 600;
-        canvas.height = 600;
+        canvas.width = 700;
+        canvas.height = 450;
         
         const ctx = canvas.getContext('2d');
         if (!ctx) {
@@ -69,13 +69,8 @@ export class ClientChartGenerator {
           options: {
             ...options,
             responsive: false,
-            maintainAspectRatio: false,
-            aspectRatio: 1, // Square aspect ratio (600:600)
-            // Force exact dimensions for pie charts
-            ...(type === 'pie' ? {
-              devicePixelRatio: 1,
-              resizeDelay: 0
-            } : {}),
+            maintainAspectRatio: true,
+            aspectRatio: 1.56, // Rectangular aspect ratio (700:450)
             plugins: {
               ...options?.plugins,
               legend: {
@@ -117,22 +112,15 @@ export class ClientChartGenerator {
                 }
               }
             } : undefined,
-            // Special configuration for pie charts to ensure perfect circle
+            // Simple pie chart configuration - no radius override
             ...(type === 'pie' ? {
               cutout: 0,
-              radius: '70%',
               elements: {
                 arc: {
                   borderWidth: 1,
                   borderColor: '#ffffff'
                 }
-              },
-              layout: {
-                padding: 20
-              },
-              // Force circular shape
-              circumference: 2 * Math.PI,
-              rotation: 0
+              }
             } : {}),
             animation: {
               onComplete: () => {

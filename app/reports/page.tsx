@@ -183,7 +183,7 @@ function ReportsPageContent() {
           console.log('📞 Outbound calls:', outboundCalls.length);
           console.log('📞 Inbound calls:', inboundCalls.length);
           console.log('📞 Sample call data:', reportData.data.calls[0]);
-          console.log('📞 All call directions:', [...new Set(reportData.data.calls.map((call: any) => getDirection(call)))]);
+          console.log('📞 All call directions:', Array.from(new Set(reportData.data.calls.map((call: any) => getDirection(call)))));
           console.log('📞 Sample call type:', reportData.data.calls[0].type);
           
           // Daily outbound calls chart
