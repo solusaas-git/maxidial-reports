@@ -742,7 +742,7 @@ export class ServerPDFGenerator {
         return aCalls - bCalls;
       });
 
-      const tableHeaders = ['Rank', 'Agent', 'Calls', 'Inbound', 'Outbound', 'Answered', 'Missed', 'Talk Time', 'Avg Duration', 'Answer Rate', 'Leads', 'Converted', 'Rate'];
+      const tableHeaders = ['Rank', 'Agent', 'Calls', 'Inbound', 'Outbound', 'Answered', 'Missed', 'Talk Time', 'Avg Duration', 'Avg Talk Time', 'Answer Rate', 'Leads', 'Converted', 'Rate'];
       const tableRows = data.agentPerformance
         .filter((agent: any) => agent.agentId !== 0)
         .map((agent: any) => {
@@ -760,6 +760,7 @@ export class ServerPDFGenerator {
             agent.missedCalls.toString(),
             this.formatDuration(agent.totalTalkTime || agent.totalConversationTime),
             this.formatDuration(agent.avgDuration),
+            this.formatDuration(agent.avgTalkTime || agent.avgConversationTime),
             `${agent.answerRate}%`,
             agent.totalLeads.toString(),
             agent.convertedLeads.toString(),
@@ -767,8 +768,8 @@ export class ServerPDFGenerator {
           ];
         });
       
-      // Use wider column widths for landscape page
-      this.addTable(tableHeaders, tableRows, [50, 150, 60, 60, 60, 60, 60, 80, 80, 80, 60, 70, 60]);
+      // Use wider column widths for landscape page (14 columns)
+      this.addTable(tableHeaders, tableRows, [50, 150, 60, 60, 60, 60, 60, 80, 80, 80, 80, 60, 70, 60]);
     }
   }
 
