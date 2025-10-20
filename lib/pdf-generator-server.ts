@@ -1,4 +1,4 @@
-import PDFDocument from 'pdfkit';
+import PDFDocument from './pdfkit-wrapper';
 import { ChartJSNodeCanvas } from 'chartjs-node-canvas';
 import { format } from 'date-fns';
 import { ReportData } from './report-generator';
