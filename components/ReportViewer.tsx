@@ -53,6 +53,33 @@ export default function ReportViewer({ reportData, onExport }: ReportViewerProps
       const inboundStatus = countByStatus(inboundCalls);
       const overallStatus = countByStatus(calls);
 
+      // Daily charts (last 7 days)
+      if (reportData.data.dailyStats && reportData.data.dailyStats.length > 0) {
+        const recent = reportData.data.dailyStats.slice(-7);
+
+        // Daily outbound bar chart
+        const labels = recent.map((d: any) => new Date(d.date).toLocaleDateString(undefined, { month: '2-digit', day: '2-digit' }));
+        const outboundValues = recent.map((d: any) => d.outbound || 0);
+        charts['daily-outbound-bar'] = await ClientChartGenerator.generateBarChart({
+          labels,
+          datasets: [{ label: 'Outbound Calls', data: outboundValues, backgroundColor: '#f97316' }]
+        }, {
+          plugins: { legend: { display: false } }
+        });
+
+        // Daily comparison line chart
+        const inboundValues = recent.map((d: any) => d.inbound || 0);
+        charts['daily-comparison-line'] = await ClientChartGenerator.generateLineChart({
+          labels,
+          datasets: [
+            { label: 'Inbound', data: inboundValues, borderColor: '#6366f1' },
+            { label: 'Outbound', data: outboundValues, borderColor: '#f97316' }
+          ]
+        }, {
+          plugins: { legend: { position: 'top' } }
+        });
+      }
+
       // Generate outbound status pie chart
       const outboundData = [
         { label: 'Answered', value: outboundStatus.answered, color: '#10b981' },

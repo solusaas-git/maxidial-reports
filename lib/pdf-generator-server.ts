@@ -308,7 +308,8 @@ export class ServerPDFGenerator {
           color: this.colors.orange
         })),
         'Date',
-        'Outbound Calls'
+        'Outbound Calls',
+        'daily-outbound-bar'
       );
     }
     
@@ -520,7 +521,8 @@ export class ServerPDFGenerator {
           ]
         })),
         'Date',
-        'Calls'
+        'Calls',
+        'daily-comparison-line'
       );
     }
     
