@@ -5,39 +5,42 @@
 import fs from 'fs';
 import path from 'path';
 
-// Setup canvas module cache hijacking BEFORE any imports
+// Setup canvas module by creating a symlink/stub at runtime
 if (process.env.VERCEL) {
   try {
-    const Module = require('module');
-    const originalRequire = Module.prototype.require;
-    const originalResolve = Module.prototype.require.resolve;
+    // Create a canvas stub that re-exports @napi-rs/canvas
+    const canvasPath = path.join(process.cwd(), 'node_modules', 'canvas');
+    const napiCanvasIndexPath = require.resolve('@napi-rs/canvas');
     
-    // Intercept all require('canvas') calls and redirect to @napi-rs/canvas
-    Module.prototype.require = function(this: any, id: string) {
-      if (id === 'canvas') {
-        console.log('[PDFKit Wrapper] Redirecting canvas require to @napi-rs/canvas');
-        return originalRequire.call(this, '@napi-rs/canvas');
-      }
-      return originalRequire.apply(this, arguments);
-    } as any;
+    console.log('[PDFKit Wrapper] Setting up canvas module stub');
+    console.log('[PDFKit Wrapper] Canvas path:', canvasPath);
+    console.log('[PDFKit Wrapper] @napi-rs/canvas path:', napiCanvasIndexPath);
     
-    // Also intercept require.resolve() calls
-    Module.prototype.require.resolve = function(this: any, id: string, options?: any) {
-      if (id === 'canvas') {
-        console.log('[PDFKit Wrapper] Redirecting canvas resolve to @napi-rs/canvas');
-        return originalResolve.call(this, '@napi-rs/canvas', options);
-      }
-      return originalResolve.apply(this, arguments);
-    };
+    // Create canvas directory if it doesn't exist
+    if (!fs.existsSync(canvasPath)) {
+      fs.mkdirSync(canvasPath, { recursive: true });
+      console.log('[PDFKit Wrapper] Created canvas directory');
+    }
     
-    // Copy other properties from original require
-    Object.keys(originalRequire).forEach(key => {
-      if (key !== 'resolve' && !(key in Module.prototype.require)) {
-        (Module.prototype.require as any)[key] = (originalRequire as any)[key];
-      }
-    });
+    // Create package.json for canvas module
+    const packageJsonPath = path.join(canvasPath, 'package.json');
+    if (!fs.existsSync(packageJsonPath)) {
+      fs.writeFileSync(packageJsonPath, JSON.stringify({
+        name: 'canvas',
+        version: '0.0.0-stub',
+        main: 'index.js'
+      }));
+      console.log('[PDFKit Wrapper] Created canvas package.json');
+    }
     
-    console.log('[PDFKit Wrapper] ✓ Canvas module redirection active');
+    // Create index.js that re-exports @napi-rs/canvas
+    const indexPath = path.join(canvasPath, 'index.js');
+    if (!fs.existsSync(indexPath)) {
+      fs.writeFileSync(indexPath, `module.exports = require('@napi-rs/canvas');`);
+      console.log('[PDFKit Wrapper] Created canvas index.js stub');
+    }
+    
+    console.log('[PDFKit Wrapper] ✓ Canvas module stub created');
   } catch (error) {
     console.error('[PDFKit Wrapper] Canvas setup error:', error);
   }
