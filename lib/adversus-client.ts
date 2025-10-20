@@ -118,8 +118,7 @@ export class AdversusClient {
     // Rate limiting helper
     const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
     
-    // Safety limits to prevent excessive API usage
-    const MAX_PAGES = 50; // Maximum pages to fetch (50,000 records)
+    // No page limits - fetch all data as needed
     const MAX_REQUESTS_PER_HOUR = 800; // Leave margin for other API calls
 
     while (hasMorePages) {
@@ -172,12 +171,6 @@ export class AdversusClient {
             } else {
               currentPage++;
             }
-          }
-          
-          // Safety check: Stop if we've reached the maximum pages
-          if (currentPage > MAX_PAGES) {
-            console.warn(`  → Reached safety limit of ${MAX_PAGES} pages (${MAX_PAGES * pageSize} records)`);
-            hasMorePages = false;
           }
         } else {
           console.log(`  → No more data on page ${currentPage}`);
@@ -258,8 +251,7 @@ export class AdversusClient {
         // Rate limiting helper
         const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
         
-        // Optimized safety limits for faster fetching
-        const MAX_PAGES = fastMode ? 10 : 20; // Even fewer pages in fast mode
+        // No page limits - fetch all data as needed
         const MAX_REQUESTS_PER_HOUR = 800;
 
         while (hasMorePages) {
@@ -308,11 +300,6 @@ export class AdversusClient {
                 } else {
                   currentPage++;
                 }
-              }
-              
-              if (currentPage > MAX_PAGES) {
-                console.warn(`  → Reached safety limit of ${MAX_PAGES} pages`);
-                hasMorePages = false;
               }
             } else {
               console.log(`  → No more data on page ${currentPage}`);

@@ -113,10 +113,9 @@ export class ReportGenerator {
         // Fetch leads page by page and stop when we've found all the ones we need
         const remainingLeadIds = new Set(uniqueLeadIds);
         let currentPage = 1;
-        const maxPages = 50; // Safety limit
         const pageSize = 10000;
         
-        while (remainingLeadIds.size > 0 && currentPage <= maxPages) {
+        while (remainingLeadIds.size > 0) {
           const leadsResponse = await this.client.getLeads({ 
             fetchAll: false,
             limit: pageSize,
@@ -332,10 +331,9 @@ export class ReportGenerator {
         // Fetch leads page by page and stop when we've found all the ones we need
         const remainingLeadIds = new Set(uniqueLeadIds);
         let currentPage = 1;
-        const maxPages = 20; // Safety limit
         const pageSize = 10000;
         
-        while (remainingLeadIds.size > 0 && currentPage <= maxPages) {
+        while (remainingLeadIds.size > 0) {
           const leadsResponse = await this.client.getLeads({ 
             fetchAll: false,
             limit: pageSize,
