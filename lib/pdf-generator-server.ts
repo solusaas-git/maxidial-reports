@@ -138,7 +138,10 @@ export class ServerPDFGenerator {
         await this.generateComparisonPage(reportData);
         break;
       case 'agent-performance':
-        await this.generateAgentPerformancePDF(reportData);
+        // Agent Performance page
+        this.addPage();
+        this.currentY = this.pageMargin;
+        await this.generateAgentPerformancePage(reportData);
         break;
       case 'campaign-analytics':
         await this.generateCampaignAnalyticsPDF(reportData);
@@ -631,6 +634,111 @@ export class ServerPDFGenerator {
         tableData,
         [80, 55, 60, 65, 60, 65]
       );
+    }
+  }
+
+  /**
+   * Generate Agent Performance page
+   */
+  private async generateAgentPerformancePage(reportData: ReportData) {
+    const { summary, data } = reportData;
+    
+    // Page title
+    this.addSectionTitle('👥 Agent Performance Report');
+    
+    // Summary cards
+    const summaryCards = [
+      { label: 'Total Agents', value: summary.totalAgents?.toString() || '0', color: this.colors.primary },
+      { label: 'Active Agents', value: summary.activeAgents?.toString() || '0', color: this.colors.success },
+      { label: 'Total Calls', value: summary.totalCalls?.toLocaleString() || '0', color: this.colors.purple },
+      { label: 'Total Leads', value: summary.totalLeads?.toLocaleString() || '0', color: this.colors.indigo },
+    ];
+    
+    this.addMetricCards(summaryCards, 4);
+    this.currentY += 15;
+    
+    // Top performers section
+    if (this.needsNewPage(250)) {
+      this.addPage();
+    }
+    
+    this.addSectionTitle('Top Performers by Conversion Rate');
+    
+    const topAgents = data.agentPerformance
+      .filter((agent: any) => 
+        agent.totalCalls >= 5 && 
+        agent.convertedLeads > 0 && 
+        agent.agentId !== 0
+      )
+      .sort((a: any, b: any) => {
+        const aConversionRate = parseFloat(a.conversionRate || '0');
+        const bConversionRate = parseFloat(b.conversionRate || '0');
+        if (aConversionRate !== bConversionRate) {
+          return bConversionRate - aConversionRate;
+        }
+        return a.totalCalls - b.totalCalls;
+      })
+      .slice(0, 5);
+    
+    if (topAgents.length > 0) {
+      // Top performers cards
+      const topPerformerCards = topAgents.map((agent: any) => ({
+        label: agent.agentName || `Agent ${agent.agentId}`,
+        value: `${agent.conversionRate}%`,
+        color: this.colors.success,
+        subtitle: `${agent.totalCalls} calls, ${agent.convertedLeads} converted`
+      }));
+      
+      this.addMetricCards(topPerformerCards, 2);
+      this.currentY += 15;
+    }
+    
+    // Agent performance chart
+    if (this.needsNewPage(220)) {
+      this.addPage();
+    }
+    
+    this.addSectionTitle('Agent Performance Overview');
+    
+    if (data.agentPerformance && data.agentPerformance.length > 0) {
+      const chartData = data.agentPerformance
+        .filter((agent: any) => agent.totalCalls >= 5 && agent.agentId !== 0)
+        .slice(0, 10)
+        .map((agent: any) => ({
+          label: agent.agentName || `Agent ${agent.agentId}`,
+          value: agent.totalCalls,
+          color: this.colors.primary
+        }));
+      
+      if (chartData.length > 0) {
+        await this.addBarChart(chartData, 'Agent', 'Total Calls', 'agent-performance-bar');
+      }
+    }
+    
+    this.currentY += 15;
+    
+    // Detailed agent table
+    if (this.needsNewPage(200)) {
+      this.addPage();
+    }
+    
+    this.addSectionTitle('Agent Performance Details');
+    
+    if (data.agentPerformance && data.agentPerformance.length > 0) {
+      const tableHeaders = ['Agent', 'Calls', 'Leads', 'Converted', 'Rate'];
+      const tableRows = data.agentPerformance
+        .filter((agent: any) => agent.agentId !== 0)
+        .sort((a: any, b: any) => b.totalCalls - a.totalCalls)
+        .slice(0, 15)
+        .map((agent: any) => [
+          agent.agentName || `Agent ${agent.agentId}`,
+          agent.totalCalls.toString(),
+          agent.totalLeads.toString(),
+          agent.convertedLeads.toString(),
+          `${agent.conversionRate}%`
+        ]);
+      
+      this.addTable(tableHeaders, tableRows, [150, 80, 80, 80, 80]);
     }
   }
 

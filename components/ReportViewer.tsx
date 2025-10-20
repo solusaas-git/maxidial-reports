@@ -185,6 +185,27 @@ export default function ReportViewer({ reportData, onExport }: ReportViewerProps
       }
     }
 
+    if (reportData.reportType === 'agent-performance') {
+      // Agent Performance bar chart
+      if (reportData.data.agentPerformance && reportData.data.agentPerformance.length > 0) {
+        const chartData = reportData.data.agentPerformance
+          .filter((agent: any) => agent.totalCalls >= 5 && agent.agentId !== 0)
+          .slice(0, 10);
+        
+        if (chartData.length > 0) {
+          const labels = chartData.map((agent: any) => agent.agentName || `Agent ${agent.agentId}`);
+          const values = chartData.map((agent: any) => agent.totalCalls);
+          
+          charts['agent-performance-bar'] = await ClientChartGenerator.generateBarChart({
+            labels,
+            datasets: [{ label: 'Total Calls', data: values, backgroundColor: '#3b82f6' }]
+          }, {
+            plugins: { legend: { display: false } }
+          });
+        }
+      }
+    }
+
     return charts;
   };
 
