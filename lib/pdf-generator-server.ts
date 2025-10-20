@@ -39,9 +39,14 @@ export class ServerPDFGenerator {
   };
 
   constructor(chartImages?: Record<string, string>) {
-    // Fonts are already set up by the API route at runtime
-    // PDFKit will find them in the data/ directory relative to the route file
     console.log(`[PDF Generator] Initializing PDFDocument`);
+    
+    // Configure font path for Vercel
+    if (process.env.VERCEL) {
+      const fontPath = path.join(process.cwd(), 'node_modules/pdfkit/js/data');
+      console.log(`[PDF Generator] Setting FONTCONFIG_PATH for Vercel: ${fontPath}`);
+      process.env.FONTCONFIG_PATH = fontPath;
+    }
     
     this.doc = new PDFDocument({ 
       size: 'A4',
