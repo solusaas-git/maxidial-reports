@@ -209,7 +209,7 @@ export default function ReportViewer({ reportData, onExport }: ReportViewerProps
   };
 
   const handlePDFExport = async () => {
-    setIsExporting(true);
+    // setIsExporting(true); // Removed - function no longer needed
     try {
       console.log('Starting PDF generation for:', reportData.reportType);
       console.log('Step 1: Generating charts client-side...');
@@ -283,7 +283,7 @@ export default function ReportViewer({ reportData, onExport }: ReportViewerProps
       console.error('PDF export failed:', error);
       alert(`Failed to export PDF: ${error.message}. Please try again.`);
     } finally {
-      setIsExporting(false);
+      // setIsExporting(false); // Removed - function no longer needed
     }
   };
 
