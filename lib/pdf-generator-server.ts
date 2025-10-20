@@ -163,51 +163,63 @@ export class ServerPDFGenerator {
     // Reset currentY for a fresh page layout
     this.currentY = this.pageMargin;
 
-    // Try to render logo top-left similar to header, but larger center content
+    // Decorative banner
+    const bannerHeight = 160;
+    const bannerY = this.pageMargin + 40;
+    this.doc
+      .save()
+      .rect(this.pageMargin, bannerY, this.pageWidth - this.pageMargin * 2, bannerHeight)
+      .fill(this.colors.lightGray)
+      .restore();
+
+    // Logo inside the banner
     const logoPath = path.join(process.cwd(), 'public', 'logos', 'logo_maxidial.png');
     const centerX = this.pageWidth / 2;
-
+    let afterBannerY = bannerY + bannerHeight + 30;
     try {
       if (fs.existsSync(logoPath)) {
-        const logoWidth = 64;
-        const logoHeight = 64;
+        const logoWidth = 72;
+        const logoHeight = 72;
         const logoX = centerX - (logoWidth / 2);
-        const logoY = this.currentY + 60;
+        const logoY = bannerY + (bannerHeight / 2) - (logoHeight / 2);
         this.doc.image(logoPath, logoX, logoY, { width: logoWidth, height: logoHeight });
-        this.currentY = logoY + logoHeight + 20;
       }
     } catch {}
 
-    // App name
+    // App name centered below banner
     this.doc
       .font('Helvetica-Bold')
-      .fontSize(24)
+      .fontSize(26)
       .fillColor(this.colors.primary)
-      .text(appName, 0, this.currentY, { width: this.pageWidth, align: 'center' });
-    this.currentY += 40;
+      .text(appName, 0, afterBannerY, { width: this.pageWidth, align: 'center' });
 
-    // Report title
+    // Big report title
     this.doc
       .font('Helvetica-Bold')
-      .fontSize(20)
+      .fontSize(28)
       .fillColor(this.colors.darkGray)
-      .text(title, 0, this.currentY, { width: this.pageWidth, align: 'center' });
-    this.currentY += 24;
+      .text(title, 0, afterBannerY + 36, { width: this.pageWidth, align: 'center' });
 
-    // Report period
+    // Divider
+    this.doc
+      .moveTo(this.pageMargin, afterBannerY + 72)
+      .lineTo(this.pageWidth - this.pageMargin, afterBannerY + 72)
+      .strokeColor('#e5e7eb')
+      .lineWidth(1)
+      .stroke();
+
+    // Meta block
+    const metaY = afterBannerY + 90;
     this.doc
       .font('Helvetica')
       .fontSize(12)
       .fillColor(this.colors.gray)
-      .text(`Report Period: ${period}`, 0, this.currentY, { width: this.pageWidth, align: 'center' });
-    this.currentY += 18;
-
-    // Generated timestamp
+      .text(`Report Period: ${period}`, 0, metaY, { width: this.pageWidth, align: 'center' });
     this.doc
       .font('Helvetica')
       .fontSize(12)
       .fillColor(this.colors.gray)
-      .text(`Generated: ${generated}`, 0, this.currentY, { width: this.pageWidth, align: 'center' });
+      .text(`Generated: ${generated}`, 0, metaY + 18, { width: this.pageWidth, align: 'center' });
   }
 
   /**
