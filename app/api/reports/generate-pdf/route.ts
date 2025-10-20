@@ -2,9 +2,58 @@ import { NextRequest, NextResponse } from 'next/server';
 import { ReportGenerator } from '@/lib/report-generator';
 import { ServerPDFGenerator } from '@/lib/pdf-generator-server';
 import { reportCache } from '@/lib/report-cache';
+import fs from 'fs';
+import path from 'path';
+
+function copyDir(src: string, dest: string) {
+  if (!fs.existsSync(src)) return;
+  if (!fs.existsSync(dest)) fs.mkdirSync(dest, { recursive: true });
+  const entries = fs.readdirSync(src, { withFileTypes: true });
+  for (const entry of entries) {
+    const srcPath = path.join(src, entry.name);
+    const destPath = path.join(dest, entry.name);
+    if (entry.isDirectory()) {
+      copyDir(srcPath, destPath);
+    } else {
+      fs.copyFileSync(srcPath, destPath);
+    }
+  }
+}
+
+function ensurePdfkitFontsBesideRoute() {
+  try {
+    // Compiled route directory (e.g., /var/task/.next/server/app/api/reports/generate-pdf)
+    const compiledDir = __dirname;
+    const targetDataDir = path.join(compiledDir, 'data');
+
+    if (fs.existsSync(path.join(targetDataDir, 'Helvetica.afm'))) {
+      return; // Already available
+    }
+
+    // Source bundled with function via includeFiles
+    const bundledSrc = path.join(process.cwd(), 'app', 'api', 'reports', 'generate-pdf', 'data');
+    if (fs.existsSync(bundledSrc)) {
+      copyDir(bundledSrc, targetDataDir);
+      console.log('[PDF Setup] Copied fonts beside route:', targetDataDir);
+      return;
+    }
+
+    // Fallback: pdfkit module data
+    const pkgData = path.join(process.cwd(), 'node_modules', 'pdfkit', 'js', 'data');
+    if (fs.existsSync(pkgData)) {
+      copyDir(pkgData, targetDataDir);
+      console.log('[PDF Setup] Copied fonts from pdfkit package to:', targetDataDir);
+    }
+  } catch (e) {
+    console.error('[PDF Setup] Failed to ensure fonts:', e);
+  }
+}
 
 export async function POST(request: NextRequest) {
   try {
+    // Ensure fonts are present next to compiled route for PDFKit's ./data lookup
+    ensurePdfkitFontsBesideRoute();
+
     const body = await request.json();
     const { reportType, startDate, endDate, chartImages } = body;
 
