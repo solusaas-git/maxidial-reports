@@ -103,8 +103,9 @@ export default function ReportViewer({ reportData, onExport }: ReportViewerProps
       ].filter(item => item.value > 0);
 
       if (outboundData.length > 0) {
+        const total = outboundData.reduce((s, i) => s + i.value, 0);
         charts['outbound-status-pie'] = await ClientChartGenerator.generatePieChart({
-          labels: outboundData.map(d => d.label),
+          labels: outboundData.map(d => `${d.label} (${total ? ((d.value / total) * 100).toFixed(1) : '0.0'}%)`),
           datasets: [{
             label: 'Outbound Calls',
             data: outboundData.map(d => d.value),
@@ -127,8 +128,9 @@ export default function ReportViewer({ reportData, onExport }: ReportViewerProps
       ].filter(item => item.value > 0);
 
       if (inboundData.length > 0) {
+        const total = inboundData.reduce((s, i) => s + i.value, 0);
         charts['inbound-status-pie'] = await ClientChartGenerator.generatePieChart({
-          labels: inboundData.map(d => d.label),
+          labels: inboundData.map(d => `${d.label} (${total ? ((d.value / total) * 100).toFixed(1) : '0.0'}%)`),
           datasets: [{
             label: 'Inbound Calls',
             data: inboundData.map(d => d.value),
@@ -151,8 +153,9 @@ export default function ReportViewer({ reportData, onExport }: ReportViewerProps
       ].filter(item => item.value > 0);
 
       if (comparisonData.length > 0) {
+        const total = comparisonData.reduce((s, i) => s + i.value, 0);
         charts['comparison-status-pie'] = await ClientChartGenerator.generatePieChart({
-          labels: comparisonData.map(d => d.label),
+          labels: comparisonData.map(d => `${d.label} (${total ? ((d.value / total) * 100).toFixed(1) : '0.0'}%)`),
           datasets: [{
             label: 'All Calls',
             data: comparisonData.map(d => d.value),
