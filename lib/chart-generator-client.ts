@@ -112,6 +112,17 @@ export class ClientChartGenerator {
                 }
               }
             } : undefined,
+            // Special configuration for pie charts to ensure perfect circle
+            ...(type === 'pie' ? {
+              cutout: 0,
+              radius: '80%',
+              elements: {
+                arc: {
+                  borderWidth: 1,
+                  borderColor: '#ffffff'
+                }
+              }
+            } : {}),
             animation: {
               onComplete: () => {
                 // Convert canvas to base64 image
