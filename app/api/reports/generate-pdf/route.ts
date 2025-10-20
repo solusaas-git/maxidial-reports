@@ -11,29 +11,40 @@ function setupPDFKitFonts() {
   
   try {
     const publicFontsPath = path.join(process.cwd(), 'public', 'fonts');
-    const targetPath = path.join('/tmp', 'data'); // PDFKit looks in ./data relative to execution
+    
+    // PDFKit looks for data/ relative to __dirname
+    // The error shows: /var/task/.next/server/app/api/reports/generate-pdf/data/
+    // So we need to create data/ in the same directory as this route file
+    const targetPath = path.join(__dirname, 'data');
+    
+    console.log(`[PDF Setup] Target path: ${targetPath}`);
+    console.log(`[PDF Setup] __dirname: ${__dirname}`);
+    console.log(`[PDF Setup] process.cwd(): ${process.cwd()}`);
     
     // Create target directory if it doesn't exist
     if (!fs.existsSync(targetPath)) {
       fs.mkdirSync(targetPath, { recursive: true });
+      console.log(`[PDF Setup] Created directory: ${targetPath}`);
     }
     
     // Check if fonts already copied (for warm lambda)
     const targetHelveticaPath = path.join(targetPath, 'Helvetica.afm');
     if (fs.existsSync(targetHelveticaPath)) {
-      console.log('[PDF Setup] Fonts already available');
+      console.log('[PDF Setup] Fonts already available at', targetPath);
       return;
     }
     
-    // Copy all font files from public/fonts to /tmp/data
+    // Copy all font files from public/fonts to the target directory
     if (fs.existsSync(publicFontsPath)) {
       const fontFiles = fs.readdirSync(publicFontsPath);
+      let copiedCount = 0;
       fontFiles.forEach(file => {
         const sourcePath = path.join(publicFontsPath, file);
         const destPath = path.join(targetPath, file);
         fs.copyFileSync(sourcePath, destPath);
+        copiedCount++;
       });
-      console.log(`[PDF Setup] Copied ${fontFiles.length} font files to ${targetPath}`);
+      console.log(`[PDF Setup] Copied ${copiedCount} font files to ${targetPath}`);
     } else {
       console.error('[PDF Setup] Font source directory not found:', publicFontsPath);
     }
