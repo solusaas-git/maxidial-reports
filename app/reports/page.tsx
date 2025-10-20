@@ -423,12 +423,21 @@ function ReportsPageContent() {
 
     try {
       console.log('Starting PDF generation for:', selectedReport);
-           console.log('Step 1: Generating charts client-side...');
+      console.log('Step 1: Generating charts client-side...');
 
-           // Generate charts client-side first
-           const chartImages = await generateChartsForReport();
-           console.log(`Generated ${Object.keys(chartImages).length} chart images`);
-           console.log('Chart keys:', Object.keys(chartImages));
+      // Generate charts client-side first
+      let chartImages: Record<string, string> = {};
+      try {
+        console.log('🚀 Calling generateChartsForReport function...');
+        console.log('ClientChartGenerator available:', typeof ClientChartGenerator);
+        chartImages = await generateChartsForReport();
+        console.log(`✅ Generated ${Object.keys(chartImages).length} chart images`);
+        console.log('Chart keys:', Object.keys(chartImages));
+      } catch (chartError) {
+        console.error('❌ Error in generateChartsForReport:', chartError);
+        console.error('Chart generation failed, continuing without charts');
+        chartImages = {};
+      }
       
       console.log('Step 2: Calling server-side PDF generation API...');
       
