@@ -334,26 +334,6 @@ export class ServerPDFGenerator {
     }
     
     this.currentY += 15;
-    
-    // Status breakdown table
-    if (this.needsNewPage(150)) {
-      this.addPage();
-    }
-    
-    this.addSectionTitle('Lead Status Breakdown');
-    
-    if (data.leadStatusBreakdown && data.leadStatusBreakdown.length > 0) {
-      const totalLeads = data.leadStatusBreakdown.reduce((sum: number, item: any) => sum + item.count, 0);
-      
-      const tableHeaders = ['Status', 'Count', 'Percentage'];
-      const tableRows = data.leadStatusBreakdown.map((item: any) => [
-        this.formatStatusName(item.status),
-        item.count.toString(),
-        `${totalLeads > 0 ? ((item.count / totalLeads) * 100).toFixed(1) : '0.0'}%`
-      ]);
-      
-      this.addTable(tableHeaders, tableRows, [200, 120, 120]);
-    }
   }
 
   /**
