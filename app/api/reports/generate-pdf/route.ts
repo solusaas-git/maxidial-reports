@@ -2,84 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { ReportGenerator } from '@/lib/report-generator';
 import { ServerPDFGenerator } from '@/lib/pdf-generator-server';
 import { reportCache } from '@/lib/report-cache';
-import fs from 'fs';
-import path from 'path';
-
-// Monkey-patch PDFKit's font loading to use /tmp directory on Vercel
-function patchPDFKitForVercel() {
-  if (!process.env.VERCEL) return;
-  
-  try {
-    const publicFontsPath = path.join(process.cwd(), 'public', 'fonts');
-    const tmpFontsPath = path.join('/tmp', 'pdfkit-fonts');
-    
-    console.log(`[PDF Setup] Setting up fonts in /tmp`);
-    console.log(`[PDF Setup] Source: ${publicFontsPath}`);
-    console.log(`[PDF Setup] Target: ${tmpFontsPath}`);
-    
-    // Create /tmp fonts directory
-    if (!fs.existsSync(tmpFontsPath)) {
-      fs.mkdirSync(tmpFontsPath, { recursive: true });
-      console.log(`[PDF Setup] Created ${tmpFontsPath}`);
-    }
-    
-    // Copy fonts if not already there
-    const targetHelvetica = path.join(tmpFontsPath, 'Helvetica.afm');
-    if (!fs.existsSync(targetHelvetica)) {
-      if (fs.existsSync(publicFontsPath)) {
-        const fontFiles = fs.readdirSync(publicFontsPath);
-        fontFiles.forEach(file => {
-          fs.copyFileSync(
-            path.join(publicFontsPath, file),
-            path.join(tmpFontsPath, file)
-          );
-        });
-        console.log(`[PDF Setup] Copied ${fontFiles.length} font files`);
-      }
-    }
-    
-    // Monkey-patch PDFKit's internal font path resolution
-    // PDFKit looks for fonts using: require('path').join(__dirname, '../data')
-    // We need to intercept this and redirect to /tmp/pdfkit-fonts
-    const Module = require('module');
-    const originalRequire = Module.prototype.require;
-    
-    Module.prototype.require = function(id: string) {
-      const module = originalRequire.apply(this, arguments);
-      
-      // Intercept 'fs' module calls in PDFKit context
-      if (id === 'fs' && this.filename?.includes('pdfkit')) {
-        return new Proxy(module, {
-          get(target, prop) {
-            if (prop === 'readFileSync') {
-              return function(filepath: string, ...args: any[]) {
-                // Redirect font file reads to /tmp
-                if (filepath.includes('/data/') && filepath.endsWith('.afm')) {
-                  const fontName = path.basename(filepath);
-                  const newPath = path.join(tmpFontsPath, fontName);
-                  console.log(`[PDF Setup] Redirecting font read: ${filepath} -> ${newPath}`);
-                  return target.readFileSync(newPath, ...args);
-                }
-                return target.readFileSync(filepath, ...args);
-              };
-            }
-            return target[prop];
-          }
-        });
-      }
-      
-      return module;
-    };
-    
-    console.log('[PDF Setup] PDFKit font patching complete');
-  } catch (error) {
-    console.error('[PDF Setup] Error patching PDFKit:', error);
-  }
-}
 
 export async function POST(request: NextRequest) {
-  // Patch PDFKit for Vercel environment
-  patchPDFKitForVercel();
   try {
     const body = await request.json();
     const { reportType, startDate, endDate } = body;
