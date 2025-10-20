@@ -145,13 +145,7 @@ export class ServerPDFGenerator {
         throw new Error(`Unknown report type: ${reportData.reportType}`);
     }
     
-    // Remove trailing blank pages
-    try {
-      const range = this.doc.bufferedPageRange();
-      // If last page is blank (no content added), remove it
-      // Heuristic: do nothing; PDFKit doesn't directly expose emptiness; we avoid creating extra pages instead
-    } catch {}
-    // Add page numbers
+    // Add page numbers (footer area inside margins)
     this.addPageNumbers();
     
     return this.doc;
@@ -1338,23 +1332,19 @@ export class ServerPDFGenerator {
    * Add page numbers to all pages
    */
   private addPageNumbers() {
-    const pageCount = (this.doc as any).bufferedPageRange().count;
-    
+    const range = (this.doc as any).bufferedPageRange();
+    const pageCount = range.count;
     for (let i = 0; i < pageCount; i++) {
       this.doc.switchToPage(i);
-      
+      const footerY = this.pageHeight - this.pageMargin + 5; // inside bottom margin
       this.doc
         .fontSize(9)
         .fillColor(this.colors.gray)
         .font('Helvetica')
-        .text(
-          `Page ${i + 1} of ${pageCount}`,
+        .text(`Page ${i + 1} of ${pageCount}`,
           this.pageMargin,
-          this.pageHeight - this.pageMargin + 10,
-          {
-            width: this.contentWidth,
-            align: 'center'
-          }
+          footerY,
+          { width: this.contentWidth, align: 'center' }
         );
     }
   }
