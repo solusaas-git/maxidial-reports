@@ -1,4 +1,4 @@
-import PDFDocument from './pdfkit-wrapper';
+import PDFDocument from 'pdfkit';
 import { format } from 'date-fns';
 import { ReportData } from './report-generator';
 import path from 'path';
