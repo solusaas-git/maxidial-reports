@@ -63,14 +63,29 @@ export default function ReportViewer({ reportData, onExport }: ReportViewerProps
       if (reportData.data.dailyStats && reportData.data.dailyStats.length > 0) {
         const recent = reportData.data.dailyStats.slice(-7);
 
-        // Daily outbound bar chart
+        // Daily outbound bar chart (Total vs Answered)
         const labels = recent.map((d: any) => new Date(d.date).toLocaleDateString(undefined, { month: '2-digit', day: '2-digit' }));
         const outboundValues = recent.map((d: any) => d.outbound || 0);
+        // Derive answered per day from calls if not present on dailyStats
+        const dateKey = (iso: string) => new Date(iso).toISOString().slice(0, 10);
+        const answeredByDate: Record<string, number> = {};
+        for (const c of outboundCalls) {
+          const disp = (c.disposition || '').toString().trim().toLowerCase().replace(/[_\s-]+/g, '');
+          if (disp === 'answered') {
+            const k = dateKey(c.startTime || c.created || c.time || c.timestamp || c.date || c.startedAt || c.callStartTime || new Date().toISOString());
+            answeredByDate[k] = (answeredByDate[k] || 0) + 1;
+          }
+        }
+        const answeredValues = recent.map((d: any) => answeredByDate[dateKey(d.date)] || 0);
         charts['daily-outbound-bar'] = await ClientChartGenerator.generateBarChart({
           labels,
-          datasets: [{ label: 'Outbound Calls', data: outboundValues, backgroundColor: '#f97316' }]
+          datasets: [
+            { label: 'Outbound (Total)', data: outboundValues, backgroundColor: '#f97316' },
+            { label: 'Answered', data: answeredValues, backgroundColor: '#10b981' }
+          ]
         }, {
-          plugins: { legend: { display: false } }
+          plugins: { legend: { position: 'top' } },
+          scales: { x: { stacked: true }, y: { stacked: true, beginAtZero: true } }
         });
 
         // Daily comparison line chart

@@ -67,7 +67,7 @@ export class ServerPDFGenerator {
         right: this.pageMargin 
       },
       bufferPages: true,
-      autoFirstPage: true
+      autoFirstPage: false
     });
     this.contentWidth = this.pageWidth - (this.pageMargin * 2);
     this.currentY = this.pageMargin;
@@ -116,6 +116,7 @@ export class ServerPDFGenerator {
     }
 
     // Cover page first
+    this.doc.addPage();
     this.addCoverPage(reportData, options);
     
     // Generate report based on type
@@ -144,6 +145,12 @@ export class ServerPDFGenerator {
         throw new Error(`Unknown report type: ${reportData.reportType}`);
     }
     
+    // Remove trailing blank pages
+    try {
+      const range = this.doc.bufferedPageRange();
+      // If last page is blank (no content added), remove it
+      // Heuristic: do nothing; PDFKit doesn't directly expose emptiness; we avoid creating extra pages instead
+    } catch {}
     // Add page numbers
     this.addPageNumbers();
     
