@@ -12,15 +12,21 @@ interface CacheEntry {
 }
 
 // Global cache storage to persist across module reloads
-const globalCache = new Map<string, CacheEntry>();
+// Use globalThis to ensure it's truly global across all contexts
+declare global {
+  var __reportCache: Map<string, CacheEntry> | undefined;
+}
 
 class ReportCache {
   private cache: Map<string, CacheEntry>;
   private defaultTTL = 30 * 60 * 1000; // 30 minutes
 
   constructor() {
-    // Use the global cache instance
-    this.cache = globalCache;
+    // Use globalThis to ensure cache persists across API routes
+    if (!globalThis.__reportCache) {
+      globalThis.__reportCache = new Map<string, CacheEntry>();
+    }
+    this.cache = globalThis.__reportCache;
   }
 
   /**
