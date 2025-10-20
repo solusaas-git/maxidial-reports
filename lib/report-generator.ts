@@ -559,7 +559,7 @@ export class ReportGenerator {
           
           // Fetch campaigns and CDR data first
           const [campaignsResponse, cdrResponse] = await Promise.all([
-            this.client.getCampaigns({ limit: 50 }), // Campaigns are usually few
+            this.client.getCampaigns({ limit: 10000 }), // Fetch all campaigns
             this.client.getCalls({ startDate, endDate, limit: 10000 }), // Fetch all calls
           ]);
 
