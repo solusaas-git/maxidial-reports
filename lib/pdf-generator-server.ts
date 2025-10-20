@@ -123,15 +123,15 @@ export class ServerPDFGenerator {
       case 'call-summary':
         // Outbound
         this.addPage();
-        this.addHeader(reportData, options);
+        this.currentY = this.pageMargin; // no header on content pages
         await this.generateOutboundPage(reportData);
         // Inbound
         this.addPage();
-        this.addHeader(reportData, options);
+        this.currentY = this.pageMargin;
         await this.generateInboundPage(reportData);
         // VS
         this.addPage();
-        this.addHeader(reportData, options);
+        this.currentY = this.pageMargin;
         await this.generateComparisonPage(reportData);
         break;
       case 'agent-performance':
