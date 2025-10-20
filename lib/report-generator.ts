@@ -557,16 +557,14 @@ export class ReportGenerator {
           console.log(`[Campaign Analytics] Fetching CDRs and Leads for range: ${startDate} to ${endDate}`);
           console.log(`[Campaign Analytics] Fetching all data for accurate reporting...`);
           
-          // Fetch campaigns, CDR data, and leads data in parallel with minimal limits
-          const [campaignsResponse, cdrResponse, leadsResponse] = await Promise.all([
+          // Fetch campaigns and CDR data first
+          const [campaignsResponse, cdrResponse] = await Promise.all([
             this.client.getCampaigns({ limit: 50 }), // Campaigns are usually few
             this.client.getCalls({ startDate, endDate, limit: 10000 }), // Fetch all calls
-            this.client.getLeads({ limit: 10000 }), // Fetch all leads
           ]);
 
           const campaignsArray = Array.isArray(campaignsResponse) ? campaignsResponse : (campaignsResponse.campaigns || campaignsResponse.data || []);
           const cdrArray = Array.isArray(cdrResponse) ? cdrResponse : (cdrResponse.cdr || cdrResponse.data || []);
-          const leadsArray = Array.isArray(leadsResponse) ? leadsResponse : (leadsResponse.leads || leadsResponse.data || []);
 
           // Filter CDR data by date range
           const startDateObj = new Date(startDate);
@@ -576,6 +574,63 @@ export class ReportGenerator {
             const callDate = new Date(c.startTime);
             return callDate >= startDateObj && callDate <= endDateObj;
           });
+
+          console.log(`[Campaign Analytics] Found ${filteredCdrArray.length} calls within date range`);
+
+          // Extract unique lead IDs from filtered CDRs (only leads that were called)
+          const uniqueLeadIds = new Set<string>();
+          filteredCdrArray.forEach((call: any) => {
+            if (call.leadId) {
+              uniqueLeadIds.add(call.leadId.toString());
+            }
+          });
+
+          console.log(`[Campaign Analytics] Found ${uniqueLeadIds.size} unique leads in CDRs`);
+
+          // Fetch only these specific leads to get their statuses (much more efficient)
+          let leadsArray: any[] = [];
+          if (uniqueLeadIds.size > 0) {
+            console.log(`[Campaign Analytics] Fetching leads for ${uniqueLeadIds.size} leads with calls`);
+            
+            // Fetch leads page by page and stop when we've found all the ones we need
+            const remainingLeadIds = new Set(uniqueLeadIds);
+            let currentPage = 1;
+            const pageSize = 10000;
+            
+            while (remainingLeadIds.size > 0) {
+              const leadsResponse = await this.client.getLeads({ 
+                fetchAll: false,
+                limit: pageSize,
+                offset: (currentPage - 1) * pageSize
+              });
+              
+              const pageLeads = Array.isArray(leadsResponse) ? leadsResponse : (leadsResponse.leads || leadsResponse.data || []);
+              
+              if (pageLeads.length === 0) {
+                console.log(`[Campaign Analytics] No more leads on page ${currentPage}, stopping`);
+                break;
+              }
+              
+              let foundInThisPage = 0;
+              pageLeads.forEach((lead: any) => {
+                const leadId = lead.id?.toString();
+                if (leadId && remainingLeadIds.has(leadId)) {
+                  leadsArray.push(lead);
+                  remainingLeadIds.delete(leadId);
+                  foundInThisPage++;
+                }
+              });
+              
+              console.log(`[Campaign Analytics] Page ${currentPage}: Found ${foundInThisPage} matching leads (${leadsArray.length}/${uniqueLeadIds.size} total, ${remainingLeadIds.size} remaining)`);
+              
+              if (remainingLeadIds.size === 0) {
+                console.log(`[Campaign Analytics] ✓ Found all ${uniqueLeadIds.size} leads after ${currentPage} pages`);
+                break;
+              }
+              
+              currentPage++;
+            }
+          }
 
           // Filter leads by date range - only include leads that were modified (converted) within the date range
           const filteredLeadsArray = leadsArray.filter((lead: any) => {
