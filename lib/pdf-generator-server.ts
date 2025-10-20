@@ -1017,8 +1017,8 @@ export class ServerPDFGenerator {
           `${campaign.conversionRate || 0}%`
         ]);
 
-      // Use wider column widths for landscape page (15 columns) - total: 680px
-      const columnWidths = [70, 35, 40, 35, 35, 40, 35, 30, 40, 55, 45, 45, 40, 40, 60];
+      // Use wider column widths for landscape page (15 columns) - total: 720px
+      const columnWidths = [80, 40, 50, 40, 40, 50, 40, 35, 45, 65, 55, 55, 50, 50, 70];
       this.addTable(tableHeaders, tableRows, columnWidths);
     }
   }
