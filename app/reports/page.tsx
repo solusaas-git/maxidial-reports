@@ -7,6 +7,7 @@ import ProtectedRoute from '@/components/ProtectedRoute';
 import { format } from 'date-fns';
 import { BarChart3, Calendar, Users, Target, FileText } from 'lucide-react';
 import { ReportData } from '@/lib/report-generator';
+import { ClientChartGenerator } from '@/lib/chart-generator-client';
 
 export default function ReportsPage() {
   return (
@@ -37,6 +38,16 @@ function ReportsPageContent() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [isExporting, setIsExporting] = useState(false);
+
+  // Status colors for charts
+  const STATUS_COLORS = {
+    'answered': '#10b981',      // Green
+    'busy': '#f59e0b',         // Yellow
+    'no-answer': '#ef4444',    // Red
+    'failed': '#ef4444',        // Red
+    'congestion': '#64748b',   // Gray
+    'unknown': '#64748b',       // Gray
+  };
 
   const reportTypes = [
     { 
@@ -100,20 +111,14 @@ function ReportsPageContent() {
     }
   };
 
-  const exportPDF = async () => {
-    if (!selectedReport) {
-      alert('Please select a report type');
-      return;
-    }
-
-    setIsExporting(true);
-    setError('');
+  const generateChartsForReport = async (): Promise<Record<string, string>> => {
+    const charts: Record<string, string> = {};
 
     try {
-      console.log('Starting PDF generation for:', selectedReport);
+      // First, fetch the report data to generate accurate charts
+      console.log('Fetching report data for chart generation...');
       
-      // Call server-side PDF generation API directly
-      const response = await fetch('/api/reports/generate-pdf', {
+      const response = await fetch('/api/reports/generate', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -126,9 +131,154 @@ function ReportsPageContent() {
       });
 
       if (!response.ok) {
+        throw new Error('Failed to fetch report data for charts');
+      }
+
+      const result = await response.json();
+      if (!result.success) {
+        throw new Error(result.message || 'Failed to fetch report data');
+      }
+
+      const reportData = result.data;
+      console.log('Report data fetched, generating charts...');
+
+      if (selectedReport === 'agent-performance') {
+        // Generate Agent Performance bar chart
+        if (reportData.data.agentPerformance && reportData.data.agentPerformance.length > 0) {
+          const chartData = reportData.data.agentPerformance
+            .filter((agent: any) => agent.totalCalls >= 5 && agent.agentId !== 0)
+            .slice(0, 10);
+          
+          if (chartData.length > 0) {
+            const labels = chartData.map((agent: any) => agent.agentName || `Agent ${agent.agentId}`);
+            const values = chartData.map((agent: any) => agent.totalCalls);
+            
+            charts['agent-performance-bar'] = await ClientChartGenerator.generateBarChart({
+              labels,
+              datasets: [{ label: 'Total Calls', data: values, backgroundColor: '#3b82f6' }]
+            }, {
+              plugins: { legend: { display: false } }
+            });
+          }
+        }
+      }
+
+      if (selectedReport === 'call-summary') {
+        // Generate Call Summary charts
+        if (reportData.data.outboundCalls && reportData.data.outboundCalls.length > 0) {
+          // Daily outbound calls chart
+          const dailyData = reportData.data.outboundCalls.reduce((acc: any, call: any) => {
+            const date = new Date(call.startTime).toISOString().split('T')[0];
+            if (!acc[date]) {
+              acc[date] = { total: 0, answered: 0 };
+            }
+            acc[date].total++;
+            if (call.disposition === 'answered') {
+              acc[date].answered++;
+            }
+            return acc;
+          }, {});
+
+          const dates = Object.keys(dailyData).sort();
+          const totalCalls = dates.map(date => dailyData[date].total);
+          const answeredCalls = dates.map(date => dailyData[date].answered);
+
+          charts['daily-outbound-bar'] = await ClientChartGenerator.generateBarChart({
+            labels: dates,
+            datasets: [
+              { label: 'Total Calls', data: totalCalls, backgroundColor: '#3b82f6' },
+              { label: 'Answered', data: answeredCalls, backgroundColor: '#10b981' }
+            ]
+          }, {
+            plugins: { legend: { display: true } }
+          });
+        }
+
+        // Generate pie charts for call status distribution
+        if (reportData.data.outboundCalls && reportData.data.outboundCalls.length > 0) {
+          const statusCounts = reportData.data.outboundCalls.reduce((acc: any, call: any) => {
+            const status = call.disposition || 'unknown';
+            acc[status] = (acc[status] || 0) + 1;
+            return acc;
+          }, {});
+
+          const statusData = Object.entries(statusCounts).map(([label, value]) => ({
+            label,
+            value: value as number,
+            color: STATUS_COLORS[label as keyof typeof STATUS_COLORS] || '#64748b'
+          }));
+
+          if (statusData.length > 0) {
+            const total = statusData.reduce((sum, item) => sum + item.value, 0);
+            charts['outbound-status-pie'] = await ClientChartGenerator.generatePieChart({
+              labels: statusData.map(d => `${d.label} (${total ? ((d.value / total) * 100).toFixed(1) : '0.0'}%)`),
+              datasets: [{
+                label: 'Outbound Calls',
+                data: statusData.map(d => d.value),
+                backgroundColor: statusData.map(d => d.color),
+              }]
+            }, {
+              plugins: {
+                legend: { position: 'right' },
+                title: { display: false }
+              }
+            });
+          }
+        }
+      }
+
+      if (selectedReport === 'campaign-analytics') {
+        // Generate Campaign Analytics charts
+        console.log('Generating charts for Campaign Analytics Report...');
+      }
+
+    } catch (error) {
+      console.error('Error generating charts:', error);
+      // Continue without charts rather than failing completely
+    }
+
+    return charts;
+  };
+
+  const exportPDF = async () => {
+    if (!selectedReport) {
+      alert('Please select a report type');
+      return;
+    }
+
+    setIsExporting(true);
+    setError('');
+
+    try {
+      console.log('Starting PDF generation for:', selectedReport);
+      console.log('Step 1: Generating charts client-side...');
+      
+      // Generate charts client-side first
+      const chartImages = await generateChartsForReport();
+      console.log(`Generated ${Object.keys(chartImages).length} chart images`);
+      
+      console.log('Step 2: Calling server-side PDF generation API...');
+      
+      // Call server-side PDF generation API with pre-generated chart images
+      const response = await fetch('/api/reports/generate-pdf', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          reportType: selectedReport,
+          startDate,
+          endDate,
+          chartImages, // Send pre-generated chart images
+        }),
+      });
+
+      if (!response.ok) {
         const errorData = await response.json();
         throw new Error(errorData.message || 'Failed to generate PDF');
       }
+
+      console.log('Step 3: Downloading PDF...');
 
       // Get the PDF blob
       const blob = await response.blob();
