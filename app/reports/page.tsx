@@ -173,14 +173,18 @@ function ReportsPageContent() {
         
         // Generate Call Summary charts
         if (reportData.data.calls && reportData.data.calls.length > 0) {
+          // Use same logic as ReportViewer to determine call direction
+          const getDirection = (c: any) => (c.direction || c.type || '').toString().toLowerCase();
+          
           // Separate outbound and inbound calls
-          const outboundCalls = reportData.data.calls.filter((call: any) => call.direction === 'outbound');
-          const inboundCalls = reportData.data.calls.filter((call: any) => call.direction === 'inbound');
+          const outboundCalls = reportData.data.calls.filter((call: any) => getDirection(call) === 'outbound');
+          const inboundCalls = reportData.data.calls.filter((call: any) => getDirection(call) === 'inbound');
           
           console.log('📞 Outbound calls:', outboundCalls.length);
           console.log('📞 Inbound calls:', inboundCalls.length);
           console.log('📞 Sample call data:', reportData.data.calls[0]);
-          console.log('📞 All call directions:', [...new Set(reportData.data.calls.map((call: any) => call.direction))]);
+          console.log('📞 All call directions:', [...new Set(reportData.data.calls.map((call: any) => getDirection(call)))]);
+          console.log('📞 Sample call type:', reportData.data.calls[0].type);
           
           // Daily outbound calls chart
           if (outboundCalls.length > 0) {
@@ -318,8 +322,9 @@ function ReportsPageContent() {
 
         // Generate comparison charts (VS section)
         if (reportData.data.calls && reportData.data.calls.length > 0) {
-          const outboundCalls = reportData.data.calls.filter((call: any) => call.direction === 'outbound');
-          const inboundCalls = reportData.data.calls.filter((call: any) => call.direction === 'inbound');
+          const getDirection = (c: any) => (c.direction || c.type || '').toString().toLowerCase();
+          const outboundCalls = reportData.data.calls.filter((call: any) => getDirection(call) === 'outbound');
+          const inboundCalls = reportData.data.calls.filter((call: any) => getDirection(call) === 'inbound');
           
           if (outboundCalls.length > 0 || inboundCalls.length > 0) {
             // Daily comparison line chart
@@ -329,9 +334,9 @@ function ReportsPageContent() {
               if (!acc[date]) {
                 acc[date] = { outbound: 0, inbound: 0 };
               }
-              if (call.direction === 'outbound') {
+              if (getDirection(call) === 'outbound') {
                 acc[date].outbound++;
-              } else if (call.direction === 'inbound') {
+              } else if (getDirection(call) === 'inbound') {
                 acc[date].inbound++;
               }
               return acc;
