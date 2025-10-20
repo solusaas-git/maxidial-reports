@@ -39,12 +39,27 @@ export class ServerPDFGenerator {
   };
 
   constructor() {
-    // Set PDFKit font path for Vercel serverless environment
-    if (process.env.VERCEL) {
-      // On Vercel, fonts are in node_modules
-      const fontPath = path.join(process.cwd(), 'node_modules', 'pdfkit', 'js', 'data');
+    // Configure font path for both Vercel and local environments
+    // Fonts are copied to public/fonts directory
+    const publicFontsPath = path.join(process.cwd(), 'public', 'fonts');
+    
+    // Try multiple possible font locations
+    const possibleFontPaths = [
+      publicFontsPath,  // Vercel and production
+      path.join(process.cwd(), 'node_modules', 'pdfkit', 'js', 'data'), // Local dev
+      path.join(__dirname, '..', '..', 'public', 'fonts'), // Alternative path
+    ];
+    
+    // Find and set the first valid font path
+    for (const fontPath of possibleFontPaths) {
       if (fs.existsSync(fontPath)) {
-        process.env.FONTCONFIG_PATH = fontPath;
+        const helveticaPath = path.join(fontPath, 'Helvetica.afm');
+        if (fs.existsSync(helveticaPath)) {
+          // Set the AFM path that PDFKit will use
+          process.env.FONTKIT_AFM_PATH = fontPath;
+          console.log(`[PDF Generator] Using font path: ${fontPath}`);
+          break;
+        }
       }
     }
     
