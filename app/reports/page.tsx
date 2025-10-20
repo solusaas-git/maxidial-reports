@@ -36,6 +36,7 @@ function ReportsPageContent() {
   const [reportData, setReportData] = useState<ReportData | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [isExporting, setIsExporting] = useState(false);
 
   const reportTypes = [
     { 
@@ -99,6 +100,65 @@ function ReportsPageContent() {
     }
   };
 
+  const exportPDF = async () => {
+    if (!selectedReport) {
+      alert('Please select a report type');
+      return;
+    }
+
+    setIsExporting(true);
+    setError('');
+
+    try {
+      console.log('Starting PDF generation for:', selectedReport);
+      
+      // Call server-side PDF generation API directly
+      const response = await fetch('/api/reports/generate-pdf', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          reportType: selectedReport,
+          startDate,
+          endDate,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to generate PDF');
+      }
+
+      // Get the PDF blob
+      const blob = await response.blob();
+      
+      // Create download link
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      
+      // Generate filename
+      const reportTypeName = reportTypes.find(r => r.id === selectedReport)?.name || 'Report';
+      const startDateStr = format(new Date(startDate), 'yyyy-MM-dd');
+      const endDateStr = format(new Date(endDate), 'yyyy-MM-dd');
+      link.download = `${reportTypeName.toLowerCase().replace(/\s+/g, '-')}-${startDateStr}-to-${endDateStr}.pdf`;
+      
+      // Trigger download
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      // Clean up
+      window.URL.revokeObjectURL(url);
+      
+    } catch (err: any) {
+      setError(err.message || 'An error occurred while exporting PDF');
+      console.error('Error exporting PDF:', err);
+    } finally {
+      setIsExporting(false);
+    }
+  };
 
   const getColorClasses = (color: string) => {
     const colors = {
@@ -193,8 +253,8 @@ function ReportsPageContent() {
               </div>
             </div>
 
-            {/* Generate Button */}
-            <div className="flex justify-center pt-4">
+            {/* Action Buttons */}
+            <div className="flex flex-col sm:flex-row justify-center gap-3 sm:gap-4 pt-4">
               <button
                 onClick={generateReport}
                 disabled={loading || !selectedReport}
@@ -209,6 +269,24 @@ function ReportsPageContent() {
                   <>
                     <BarChart3 className="w-5 h-5 mr-2" />
                     Generate Report
+                  </>
+                )}
+              </button>
+              
+              <button
+                onClick={exportPDF}
+                disabled={loading || !selectedReport || isExporting}
+                className="btn btn-success px-8 py-3 text-base font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isExporting ? (
+                  <>
+                    <div className="spinner w-5 h-5 mr-2"></div>
+                    Exporting PDF...
+                  </>
+                ) : (
+                  <>
+                    <FileText className="w-5 h-5 mr-2" />
+                    Export PDF
                   </>
                 )}
               </button>

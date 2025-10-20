@@ -25,7 +25,6 @@ type TabType = 'outbound' | 'inbound' | 'vs';
 
 export default function ReportViewer({ reportData, onExport }: ReportViewerProps) {
   const [activeTab, setActiveTab] = useState<TabType>('outbound');
-  const [isExporting, setIsExporting] = useState(false);
 
   if (!reportData) {
     return null;
@@ -1605,15 +1604,6 @@ export default function ReportViewer({ reportData, onExport }: ReportViewerProps
                 Generated at {new Date(reportData.generatedAt).toLocaleString()}
               </p>
             </div>
-            <button
-              onClick={handlePDFExport}
-              disabled={isExporting}
-              data-export-button
-              className="btn btn-success w-full sm:w-auto disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              <Download className="w-4 h-4 mr-2" />
-              {isExporting ? 'Exporting PDF...' : 'Export PDF'}
-            </button>
           </div>
         </div>
       </div>
