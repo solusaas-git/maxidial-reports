@@ -1005,6 +1005,9 @@ export class ServerPDFGenerator {
     } else if (title.startsWith('📊')) {
       emoji = '📊';
       text = title.substring(2).trim();
+    } else if (title.startsWith('👥')) {
+      emoji = '👥';
+      text = title.substring(2).trim();
     }
     
     if (emoji) {
@@ -1480,6 +1483,10 @@ export class ServerPDFGenerator {
    */
   private addLandscapePage() {
     this.doc.addPage({ size: [842, 595] }); // A4 landscape dimensions
+    // Update page dimensions for landscape
+    this.pageWidth = 842;
+    this.pageHeight = 595;
+    this.contentWidth = this.pageWidth - (this.pageMargin * 2);
     this.currentY = this.pageMargin;
   }
 
