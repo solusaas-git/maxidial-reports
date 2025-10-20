@@ -5,15 +5,14 @@ const nextConfig = {
   reactStrictMode: true,
   webpack: (config, { isServer }) => {
     if (isServer) {
-      // Always externalize canvas (native module)
-      // Vercel will include the pre-built binaries via includeFiles
-      config.externals = config.externals || [];
-      if (Array.isArray(config.externals)) {
-        config.externals.push('canvas');
+      // On Vercel, don't externalize anything - let webpack bundle and use postinstall
+      // Locally, externalize for faster dev builds
+      if (!process.env.VERCEL) {
+        config.externals = config.externals || [];
+        if (Array.isArray(config.externals)) {
+          config.externals.push('canvas');
+        }
       }
-      
-      // Don't externalize pdfkit and chartjs-node-canvas - let webpack bundle them
-      // but canvas must be external since it's a native addon
       
       // Copy PDFKit font files to the output directory
       config.module.rules.push({
