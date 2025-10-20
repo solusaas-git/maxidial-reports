@@ -172,188 +172,216 @@ function ReportsPageContent() {
       console.log('Available data keys:', Object.keys(reportData.data));
         
         // Generate Call Summary charts
-        if (reportData.data.outboundCalls && reportData.data.outboundCalls.length > 0) {
+        if (reportData.data.calls && reportData.data.calls.length > 0) {
+          // Separate outbound and inbound calls
+          const outboundCalls = reportData.data.calls.filter((call: any) => call.direction === 'outbound');
+          const inboundCalls = reportData.data.calls.filter((call: any) => call.direction === 'inbound');
+          
+          console.log('📞 Outbound calls:', outboundCalls.length);
+          console.log('📞 Inbound calls:', inboundCalls.length);
+          
           // Daily outbound calls chart
-          const dailyData = reportData.data.outboundCalls.reduce((acc: any, call: any) => {
-            const date = new Date(call.startTime).toISOString().split('T')[0];
-            if (!acc[date]) {
-              acc[date] = { total: 0, answered: 0 };
-            }
-            acc[date].total++;
-            if (call.disposition === 'answered') {
-              acc[date].answered++;
-            }
-            return acc;
-          }, {});
-
-          const dates = Object.keys(dailyData).sort();
-          const totalCalls = dates.map(date => dailyData[date].total);
-          const answeredCalls = dates.map(date => dailyData[date].answered);
-
-          console.log('📈 Generating daily-outbound-bar chart...');
-          charts['daily-outbound-bar'] = await ClientChartGenerator.generateBarChart({
-            labels: dates,
-            datasets: [
-              { label: 'Total Calls', data: totalCalls, backgroundColor: '#3b82f6' },
-              { label: 'Answered', data: answeredCalls, backgroundColor: '#10b981' }
-            ]
-          }, {
-            plugins: { legend: { display: true } }
-          });
-          console.log('✅ Generated daily-outbound-bar chart');
-        }
-
-        // Generate pie charts for call status distribution
-        if (reportData.data.outboundCalls && reportData.data.outboundCalls.length > 0) {
-          const statusCounts = reportData.data.outboundCalls.reduce((acc: any, call: any) => {
-            const status = call.disposition || 'unknown';
-            acc[status] = (acc[status] || 0) + 1;
-            return acc;
-          }, {});
-
-          const statusData = Object.entries(statusCounts).map(([label, value]) => ({
-            label,
-            value: value as number,
-            color: STATUS_COLORS[label as keyof typeof STATUS_COLORS] || '#64748b'
-          }));
-
-          if (statusData.length > 0) {
-            const total = statusData.reduce((sum, item) => sum + item.value, 0);
-            charts['outbound-status-pie'] = await ClientChartGenerator.generatePieChart({
-              labels: statusData.map(d => `${d.label} (${total ? ((d.value / total) * 100).toFixed(1) : '0.0'}%)`),
-              datasets: [{
-                label: 'Outbound Calls',
-                data: statusData.map(d => d.value),
-                backgroundColor: statusData.map(d => d.color),
-              }]
-            }, {
-              plugins: {
-                legend: { position: 'right' },
-                title: { display: false }
+          if (outboundCalls.length > 0) {
+            const dailyData = outboundCalls.reduce((acc: any, call: any) => {
+              const date = new Date(call.startTime).toISOString().split('T')[0];
+              if (!acc[date]) {
+                acc[date] = { total: 0, answered: 0 };
               }
+              acc[date].total++;
+              if (call.disposition === 'answered') {
+                acc[date].answered++;
+              }
+              return acc;
+            }, {});
+
+            const dates = Object.keys(dailyData).sort();
+            const totalCalls = dates.map(date => dailyData[date].total);
+            const answeredCalls = dates.map(date => dailyData[date].answered);
+
+            console.log('📈 Generating daily-outbound-bar chart...');
+            charts['daily-outbound-bar'] = await ClientChartGenerator.generateBarChart({
+              labels: dates,
+              datasets: [
+                { label: 'Total Calls', data: totalCalls, backgroundColor: '#3b82f6' },
+                { label: 'Answered', data: answeredCalls, backgroundColor: '#10b981' }
+              ]
+            }, {
+              plugins: { legend: { display: true } }
             });
+            console.log('✅ Generated daily-outbound-bar chart');
+          }
+
+          // Generate pie charts for call status distribution
+          if (outboundCalls.length > 0) {
+            const statusCounts = outboundCalls.reduce((acc: any, call: any) => {
+              const status = call.disposition || 'unknown';
+              acc[status] = (acc[status] || 0) + 1;
+              return acc;
+            }, {});
+
+            const statusData = Object.entries(statusCounts).map(([label, value]) => ({
+              label,
+              value: value as number,
+              color: STATUS_COLORS[label as keyof typeof STATUS_COLORS] || '#64748b'
+            }));
+
+            if (statusData.length > 0) {
+              const total = statusData.reduce((sum, item) => sum + item.value, 0);
+              console.log('🥧 Generating outbound-status-pie chart...');
+              charts['outbound-status-pie'] = await ClientChartGenerator.generatePieChart({
+                labels: statusData.map(d => `${d.label} (${total ? ((d.value / total) * 100).toFixed(1) : '0.0'}%)`),
+                datasets: [{
+                  label: 'Outbound Calls',
+                  data: statusData.map(d => d.value),
+                  backgroundColor: statusData.map(d => d.color),
+                }]
+              }, {
+                plugins: {
+                  legend: { position: 'right' },
+                  title: { display: false }
+                }
+              });
+              console.log('✅ Generated outbound-status-pie chart');
+            }
           }
         }
 
         // Generate inbound charts
-        if (reportData.data.inboundCalls && reportData.data.inboundCalls.length > 0) {
-          // Daily inbound calls chart
-          const dailyInboundData = reportData.data.inboundCalls.reduce((acc: any, call: any) => {
-            const date = new Date(call.startTime).toISOString().split('T')[0];
-            if (!acc[date]) {
-              acc[date] = { total: 0, answered: 0 };
-            }
-            acc[date].total++;
-            if (call.disposition === 'answered') {
-              acc[date].answered++;
-            }
-            return acc;
-          }, {});
-
-          const inboundDates = Object.keys(dailyInboundData).sort();
-          const inboundTotalCalls = inboundDates.map(date => dailyInboundData[date].total);
-          const inboundAnsweredCalls = inboundDates.map(date => dailyInboundData[date].answered);
-
-          charts['daily-inbound-bar'] = await ClientChartGenerator.generateBarChart({
-            labels: inboundDates,
-            datasets: [
-              { label: 'Total Calls', data: inboundTotalCalls, backgroundColor: '#3b82f6' },
-              { label: 'Answered', data: inboundAnsweredCalls, backgroundColor: '#10b981' }
-            ]
-          }, {
-            plugins: { legend: { display: true } }
-          });
-
-          // Inbound status pie chart
-          const inboundStatusCounts = reportData.data.inboundCalls.reduce((acc: any, call: any) => {
-            const status = call.disposition || 'unknown';
-            acc[status] = (acc[status] || 0) + 1;
-            return acc;
-          }, {});
-
-          const inboundStatusData = Object.entries(inboundStatusCounts).map(([label, value]) => ({
-            label,
-            value: value as number,
-            color: STATUS_COLORS[label as keyof typeof STATUS_COLORS] || '#64748b'
-          }));
-
-          if (inboundStatusData.length > 0) {
-            const inboundTotal = inboundStatusData.reduce((sum, item) => sum + item.value, 0);
-            charts['inbound-status-pie'] = await ClientChartGenerator.generatePieChart({
-              labels: inboundStatusData.map(d => `${d.label} (${inboundTotal ? ((d.value / inboundTotal) * 100).toFixed(1) : '0.0'}%)`),
-              datasets: [{
-                label: 'Inbound Calls',
-                data: inboundStatusData.map(d => d.value),
-                backgroundColor: inboundStatusData.map(d => d.color),
-              }]
-            }, {
-              plugins: {
-                legend: { position: 'right' },
-                title: { display: false }
+        if (reportData.data.calls && reportData.data.calls.length > 0) {
+          const inboundCalls = reportData.data.calls.filter((call: any) => call.direction === 'inbound');
+          
+          if (inboundCalls.length > 0) {
+            // Daily inbound calls chart
+            const dailyInboundData = inboundCalls.reduce((acc: any, call: any) => {
+              const date = new Date(call.startTime).toISOString().split('T')[0];
+              if (!acc[date]) {
+                acc[date] = { total: 0, answered: 0 };
               }
+              acc[date].total++;
+              if (call.disposition === 'answered') {
+                acc[date].answered++;
+              }
+              return acc;
+            }, {});
+
+            const inboundDates = Object.keys(dailyInboundData).sort();
+            const inboundTotalCalls = inboundDates.map(date => dailyInboundData[date].total);
+            const inboundAnsweredCalls = inboundDates.map(date => dailyInboundData[date].answered);
+
+            console.log('📈 Generating daily-inbound-bar chart...');
+            charts['daily-inbound-bar'] = await ClientChartGenerator.generateBarChart({
+              labels: inboundDates,
+              datasets: [
+                { label: 'Total Calls', data: inboundTotalCalls, backgroundColor: '#3b82f6' },
+                { label: 'Answered', data: inboundAnsweredCalls, backgroundColor: '#10b981' }
+              ]
+            }, {
+              plugins: { legend: { display: true } }
             });
+            console.log('✅ Generated daily-inbound-bar chart');
+
+            // Inbound status pie chart
+            const inboundStatusCounts = inboundCalls.reduce((acc: any, call: any) => {
+              const status = call.disposition || 'unknown';
+              acc[status] = (acc[status] || 0) + 1;
+              return acc;
+            }, {});
+
+            const inboundStatusData = Object.entries(inboundStatusCounts).map(([label, value]) => ({
+              label,
+              value: value as number,
+              color: STATUS_COLORS[label as keyof typeof STATUS_COLORS] || '#64748b'
+            }));
+
+            if (inboundStatusData.length > 0) {
+              const inboundTotal = inboundStatusData.reduce((sum, item) => sum + item.value, 0);
+              console.log('🥧 Generating inbound-status-pie chart...');
+              charts['inbound-status-pie'] = await ClientChartGenerator.generatePieChart({
+                labels: inboundStatusData.map(d => `${d.label} (${inboundTotal ? ((d.value / inboundTotal) * 100).toFixed(1) : '0.0'}%)`),
+                datasets: [{
+                  label: 'Inbound Calls',
+                  data: inboundStatusData.map(d => d.value),
+                  backgroundColor: inboundStatusData.map(d => d.color),
+                }]
+              }, {
+                plugins: {
+                  legend: { position: 'right' },
+                  title: { display: false }
+                }
+              });
+              console.log('✅ Generated inbound-status-pie chart');
+            }
           }
         }
 
         // Generate comparison charts (VS section)
-        if (reportData.data.outboundCalls && reportData.data.inboundCalls) {
-          // Daily comparison line chart
-          const allCalls = [...reportData.data.outboundCalls, ...reportData.data.inboundCalls];
-          const dailyComparisonData = allCalls.reduce((acc: any, call: any) => {
-            const date = new Date(call.startTime).toISOString().split('T')[0];
-            if (!acc[date]) {
-              acc[date] = { outbound: 0, inbound: 0 };
-            }
-            if (call.direction === 'outbound') {
-              acc[date].outbound++;
-            } else if (call.direction === 'inbound') {
-              acc[date].inbound++;
-            }
-            return acc;
-          }, {});
-
-          const comparisonDates = Object.keys(dailyComparisonData).sort();
-          const outboundComparisonData = comparisonDates.map(date => dailyComparisonData[date].outbound);
-          const inboundComparisonData = comparisonDates.map(date => dailyComparisonData[date].inbound);
-
-          charts['daily-comparison-line'] = await ClientChartGenerator.generateLineChart({
-            labels: comparisonDates,
-            datasets: [
-              { label: 'Outbound', data: outboundComparisonData, borderColor: '#3b82f6', backgroundColor: 'rgba(59, 130, 246, 0.1)' },
-              { label: 'Inbound', data: inboundComparisonData, borderColor: '#10b981', backgroundColor: 'rgba(16, 185, 129, 0.1)' }
-            ]
-          }, {
-            plugins: { legend: { display: true } }
-          });
-
-          // Comparison status pie chart
-          const comparisonStatusCounts = allCalls.reduce((acc: any, call: any) => {
-            const status = call.disposition || 'unknown';
-            acc[status] = (acc[status] || 0) + 1;
-            return acc;
-          }, {});
-
-          const comparisonStatusData = Object.entries(comparisonStatusCounts).map(([label, value]) => ({
-            label,
-            value: value as number,
-            color: STATUS_COLORS[label as keyof typeof STATUS_COLORS] || '#64748b'
-          }));
-
-          if (comparisonStatusData.length > 0) {
-            const comparisonTotal = comparisonStatusData.reduce((sum, item) => sum + item.value, 0);
-            charts['comparison-status-pie'] = await ClientChartGenerator.generatePieChart({
-              labels: comparisonStatusData.map(d => `${d.label} (${comparisonTotal ? ((d.value / comparisonTotal) * 100).toFixed(1) : '0.0'}%)`),
-              datasets: [{
-                label: 'All Calls',
-                data: comparisonStatusData.map(d => d.value),
-                backgroundColor: comparisonStatusData.map(d => d.color),
-              }]
-            }, {
-              plugins: {
-                legend: { position: 'right' },
-                title: { display: false }
+        if (reportData.data.calls && reportData.data.calls.length > 0) {
+          const outboundCalls = reportData.data.calls.filter((call: any) => call.direction === 'outbound');
+          const inboundCalls = reportData.data.calls.filter((call: any) => call.direction === 'inbound');
+          
+          if (outboundCalls.length > 0 || inboundCalls.length > 0) {
+            // Daily comparison line chart
+            const allCalls = [...outboundCalls, ...inboundCalls];
+            const dailyComparisonData = allCalls.reduce((acc: any, call: any) => {
+              const date = new Date(call.startTime).toISOString().split('T')[0];
+              if (!acc[date]) {
+                acc[date] = { outbound: 0, inbound: 0 };
               }
+              if (call.direction === 'outbound') {
+                acc[date].outbound++;
+              } else if (call.direction === 'inbound') {
+                acc[date].inbound++;
+              }
+              return acc;
+            }, {});
+
+            const comparisonDates = Object.keys(dailyComparisonData).sort();
+            const outboundComparisonData = comparisonDates.map(date => dailyComparisonData[date].outbound);
+            const inboundComparisonData = comparisonDates.map(date => dailyComparisonData[date].inbound);
+
+            console.log('📈 Generating daily-comparison-line chart...');
+            charts['daily-comparison-line'] = await ClientChartGenerator.generateLineChart({
+              labels: comparisonDates,
+              datasets: [
+                { label: 'Outbound', data: outboundComparisonData, borderColor: '#3b82f6', backgroundColor: 'rgba(59, 130, 246, 0.1)' },
+                { label: 'Inbound', data: inboundComparisonData, borderColor: '#10b981', backgroundColor: 'rgba(16, 185, 129, 0.1)' }
+              ]
+            }, {
+              plugins: { legend: { display: true } }
             });
+            console.log('✅ Generated daily-comparison-line chart');
+
+            // Comparison status pie chart
+            const comparisonStatusCounts = allCalls.reduce((acc: any, call: any) => {
+              const status = call.disposition || 'unknown';
+              acc[status] = (acc[status] || 0) + 1;
+              return acc;
+            }, {});
+
+            const comparisonStatusData = Object.entries(comparisonStatusCounts).map(([label, value]) => ({
+              label,
+              value: value as number,
+              color: STATUS_COLORS[label as keyof typeof STATUS_COLORS] || '#64748b'
+            }));
+
+            if (comparisonStatusData.length > 0) {
+              const comparisonTotal = comparisonStatusData.reduce((sum, item) => sum + item.value, 0);
+              console.log('🥧 Generating comparison-status-pie chart...');
+              charts['comparison-status-pie'] = await ClientChartGenerator.generatePieChart({
+                labels: comparisonStatusData.map(d => `${d.label} (${comparisonTotal ? ((d.value / comparisonTotal) * 100).toFixed(1) : '0.0'}%)`),
+                datasets: [{
+                  label: 'All Calls',
+                  data: comparisonStatusData.map(d => d.value),
+                  backgroundColor: comparisonStatusData.map(d => d.color),
+                }]
+              }, {
+                plugins: {
+                  legend: { position: 'right' },
+                  title: { display: false }
+                }
+              });
+              console.log('✅ Generated comparison-status-pie chart');
+            }
           }
         }
       }
