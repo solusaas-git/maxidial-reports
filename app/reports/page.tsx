@@ -415,11 +415,12 @@ function ReportsPageContent() {
 
     try {
       console.log('Starting PDF generation for:', selectedReport);
-      console.log('Step 1: Generating charts client-side...');
-      
-      // Generate charts client-side first
-      const chartImages = await generateChartsForReport();
-      console.log(`Generated ${Object.keys(chartImages).length} chart images`);
+           console.log('Step 1: Generating charts client-side...');
+
+           // Generate charts client-side first
+           const chartImages = await generateChartsForReport();
+           console.log(`Generated ${Object.keys(chartImages).length} chart images`);
+           console.log('Chart keys:', Object.keys(chartImages));
       
       console.log('Step 2: Calling server-side PDF generation API...');
       

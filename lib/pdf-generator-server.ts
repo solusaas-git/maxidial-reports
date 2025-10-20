@@ -76,6 +76,7 @@ export class ServerPDFGenerator {
     if (chartImages) {
       this.chartImages = chartImages;
       console.log(`[PDF Generator] Loaded ${Object.keys(chartImages).length} pre-generated chart images`);
+      console.log(`[PDF Generator] Chart keys:`, Object.keys(chartImages));
     }
   }
 
