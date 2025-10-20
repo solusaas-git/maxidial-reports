@@ -410,7 +410,8 @@ export class ServerPDFGenerator {
           color: this.colors.indigo
         })),
         'Date',
-        'Inbound Calls'
+        'Inbound Calls',
+        'daily-inbound-bar'
       );
     }
     

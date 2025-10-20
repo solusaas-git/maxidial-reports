@@ -78,6 +78,14 @@ export default function ReportViewer({ reportData, onExport }: ReportViewerProps
         }, {
           plugins: { legend: { position: 'top' } }
         });
+
+        // Daily inbound bar chart (used on inbound page)
+        charts['daily-inbound-bar'] = await ClientChartGenerator.generateBarChart({
+          labels,
+          datasets: [{ label: 'Inbound Calls', data: inboundValues, backgroundColor: '#6366f1' }]
+        }, {
+          plugins: { legend: { display: false } }
+        });
       }
 
       // Generate outbound status pie chart
