@@ -179,6 +179,8 @@ function ReportsPageContent() {
           
           console.log('📞 Outbound calls:', outboundCalls.length);
           console.log('📞 Inbound calls:', inboundCalls.length);
+          console.log('📞 Sample call data:', reportData.data.calls[0]);
+          console.log('📞 All call directions:', [...new Set(reportData.data.calls.map((call: any) => call.direction))]);
           
           // Daily outbound calls chart
           if (outboundCalls.length > 0) {
