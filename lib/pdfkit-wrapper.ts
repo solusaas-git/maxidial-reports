@@ -1,9 +1,30 @@
 /**
  * PDFKit wrapper for Vercel compatibility
- * This module sets up fonts before importing PDFKit
+ * This module sets up fonts and canvas before importing PDFKit
  */
 import fs from 'fs';
 import path from 'path';
+
+// Setup canvas module cache hijacking BEFORE any imports
+if (process.env.VERCEL) {
+  try {
+    const Module = require('module');
+    const originalRequire = Module.prototype.require;
+    
+    // Intercept all require('canvas') calls and redirect to @napi-rs/canvas
+    Module.prototype.require = function(id: string) {
+      if (id === 'canvas') {
+        console.log('[PDFKit Wrapper] Redirecting canvas require to @napi-rs/canvas');
+        return originalRequire.call(this, '@napi-rs/canvas');
+      }
+      return originalRequire.apply(this, arguments);
+    };
+    
+    console.log('[PDFKit Wrapper] ✓ Canvas module redirection active');
+  } catch (error) {
+    console.error('[PDFKit Wrapper] Canvas setup error:', error);
+  }
+}
 
 // Setup fonts in /tmp before loading PDFKit
 if (process.env.VERCEL) {
