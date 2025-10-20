@@ -5,14 +5,11 @@ const nextConfig = {
   reactStrictMode: true,
   webpack: (config, { isServer }) => {
     if (isServer) {
-      // On Vercel, don't externalize anything - let webpack bundle and use postinstall
-      // Locally, externalize for faster dev builds
-      if (!process.env.VERCEL) {
-        config.externals = config.externals || [];
-        if (Array.isArray(config.externals)) {
-          config.externals.push('canvas');
-        }
-      }
+      // Alias 'canvas' to our compatibility layer that uses @napi-rs/canvas
+      config.resolve.alias = {
+        ...config.resolve.alias,
+        'canvas': path.resolve(__dirname, 'lib/canvas-compat.ts'),
+      };
       
       // Copy PDFKit font files to the output directory
       config.module.rules.push({
