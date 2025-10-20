@@ -165,9 +165,11 @@ function ReportsPageContent() {
       }
 
       if (selectedReport === 'call-summary') {
-        console.log('📊 Generating Call Summary charts...');
-        console.log('Outbound calls data:', reportData.data.outboundCalls?.length || 0);
-        console.log('Inbound calls data:', reportData.data.inboundCalls?.length || 0);
+      console.log('📊 Generating Call Summary charts...');
+      console.log('Outbound calls data:', reportData.data.outboundCalls?.length || 0);
+      console.log('Inbound calls data:', reportData.data.inboundCalls?.length || 0);
+      console.log('Full report data structure:', reportData.data);
+      console.log('Available data keys:', Object.keys(reportData.data));
         
         // Generate Call Summary charts
         if (reportData.data.outboundCalls && reportData.data.outboundCalls.length > 0) {
