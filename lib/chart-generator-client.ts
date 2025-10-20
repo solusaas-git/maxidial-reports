@@ -52,17 +52,17 @@ export class ClientChartGenerator {
   ): Promise<string> {
     return new Promise((resolve, reject) => {
       try {
-        // Create a canvas element with better aspect ratio
+        // Create a canvas element - square format for clean, direct charts
         const canvas = document.createElement('canvas');
         canvas.width = 600;
-        canvas.height = 400;
+        canvas.height = 600;
         
         const ctx = canvas.getContext('2d');
         if (!ctx) {
           throw new Error('Could not get canvas context');
         }
 
-        // Create the chart configuration
+        // Create the chart configuration with clean, direct styling
         const config: ChartConfiguration = {
           type,
           data,
@@ -70,7 +70,48 @@ export class ClientChartGenerator {
             ...options,
             responsive: false,
             maintainAspectRatio: true,
-            aspectRatio: 1.5, // 3:2 aspect ratio (600:400)
+            aspectRatio: 1, // Square aspect ratio (600:600)
+            plugins: {
+              ...options?.plugins,
+              legend: {
+                display: true,
+                position: 'right',
+                labels: {
+                  usePointStyle: false,
+                  padding: 15,
+                  font: {
+                    size: 12,
+                    family: 'Arial, sans-serif'
+                  }
+                }
+              }
+            },
+            scales: type !== 'pie' ? {
+              x: {
+                grid: {
+                  display: true,
+                  color: '#e0e0e0'
+                },
+                ticks: {
+                  font: {
+                    size: 11,
+                    family: 'Arial, sans-serif'
+                  }
+                }
+              },
+              y: {
+                grid: {
+                  display: true,
+                  color: '#e0e0e0'
+                },
+                ticks: {
+                  font: {
+                    size: 11,
+                    family: 'Arial, sans-serif'
+                  }
+                }
+              }
+            } : undefined,
             animation: {
               onComplete: () => {
                 // Convert canvas to base64 image
