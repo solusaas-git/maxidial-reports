@@ -40,13 +40,23 @@ export class ServerPDFGenerator {
 
   constructor(chartImages?: Record<string, string>) {
     console.log(`[PDF Generator] Initializing PDFDocument`);
-    
-    // Configure font path for Vercel
-    if (process.env.VERCEL) {
-      const fontPath = path.join(process.cwd(), 'node_modules/pdfkit/js/data');
-      console.log(`[PDF Generator] Setting FONTCONFIG_PATH for Vercel: ${fontPath}`);
-      process.env.FONTCONFIG_PATH = fontPath;
-    }
+
+    // Always use local public/fonts for AFM font files (independent of Vercel)
+    const publicFonts = path.join(process.cwd(), 'public', 'fonts');
+    // Monkey-patch fs.readFileSync to redirect PDFKit's ./data/*.afm reads
+    const originalReadFileSync = fs.readFileSync;
+    (fs as any).readFileSync = function(filePath: any, ...args: any[]) {
+      try {
+        if (typeof filePath === 'string' && filePath.includes('/data/') && filePath.endsWith('.afm')) {
+          const fileName = path.basename(filePath);
+          const redirected = path.join(publicFonts, fileName);
+          return originalReadFileSync.call(this, redirected, ...args);
+        }
+        return originalReadFileSync.call(this, filePath, ...args);
+      } catch (e) {
+        return originalReadFileSync.call(this, filePath, ...args);
+      }
+    };
     
     this.doc = new PDFDocument({ 
       size: 'A4',

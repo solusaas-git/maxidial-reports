@@ -22,10 +22,13 @@ function copyDir(src, dest) {
 
 try {
   const pdfkitData = path.join(process.cwd(), 'node_modules', 'pdfkit', 'js', 'data');
-  const target = path.join(process.cwd(), 'app', 'api', 'reports', 'generate-pdf', 'data');
+  const functionTarget = path.join(process.cwd(), 'app', 'api', 'reports', 'generate-pdf', 'data');
+  const publicTarget = path.join(process.cwd(), 'public', 'fonts');
   if (fs.existsSync(pdfkitData)) {
-    copyDir(pdfkitData, target);
-    console.log(`[copy-pdfkit-data] Copied fonts to: ${target}`);
+    copyDir(pdfkitData, functionTarget);
+    console.log(`[copy-pdfkit-data] Copied fonts to function dir: ${functionTarget}`);
+    copyDir(pdfkitData, publicTarget);
+    console.log(`[copy-pdfkit-data] Copied fonts to public dir: ${publicTarget}`);
   } else {
     console.warn('[copy-pdfkit-data] PDFKit data directory not found:', pdfkitData);
   }
