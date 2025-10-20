@@ -39,6 +39,15 @@ export class ServerPDFGenerator {
   };
 
   constructor() {
+    // Set PDFKit font path for Vercel serverless environment
+    if (process.env.VERCEL) {
+      // On Vercel, fonts are in node_modules
+      const fontPath = path.join(process.cwd(), 'node_modules', 'pdfkit', 'js', 'data');
+      if (fs.existsSync(fontPath)) {
+        process.env.FONTCONFIG_PATH = fontPath;
+      }
+    }
+    
     this.doc = new PDFDocument({ 
       size: 'A4',
       margins: { 
