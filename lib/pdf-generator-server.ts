@@ -1117,6 +1117,7 @@ export class ServerPDFGenerator {
       '📞': 'outbound.png',
       '📱': 'inbound.png',
       '📊': 'two-way-communication.png',
+      '👥': 'call-center-service.png',
     };
     const filename = iconMap[emoji] || 'default.png';
     return path.join(process.cwd(), 'public', 'icons', filename);
@@ -1130,6 +1131,7 @@ export class ServerPDFGenerator {
       '📞': this.colors.orange,   // Outbound = orange
       '📱': this.colors.indigo,   // Inbound = indigo
       '📊': this.colors.primary,  // Comparison = blue
+      '👥': this.colors.success,  // Agent Performance = green
     };
     return colorMap[emoji] || this.colors.primary;
   }
