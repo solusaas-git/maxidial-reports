@@ -403,27 +403,47 @@ export class ReportGenerator {
       });
 
       // Process leads data for conversion metrics
-      // Note: We'll associate leads with agents based on campaign assignments
-      // This is a simplified approach - in reality, you might need more complex logic
-      leadsArray.forEach((lead: any) => {
-        // For now, we'll distribute leads across agents based on campaign
-        // This is a simplified approach - you might need to track which agent handled which lead
-        const campaignId = parseInt(lead.campaignId) || 0;
-        
-        // Find agents who made calls for this campaign
-        const agentsForCampaign = Object.keys(agentStats).filter(agentId => {
-          const agentIdNum = parseInt(agentId);
-          return agentIdNum > 0 && filteredCdrArray.some((cdr: any) => 
-            parseInt(cdr.userId) === agentIdNum && parseInt(cdr.campaignId) === campaignId
-          );
-        });
-        
-        if (agentsForCampaign.length > 0) {
-          // Distribute leads evenly among agents who worked on this campaign
-          agentsForCampaign.forEach(agentId => {
-            agentStats[agentId].totalLeads++;
-            if (lead.status === 'success') {
-              agentStats[agentId].convertedLeads++;
+      // Filter leads by date range and associate with agents based on actual call activity
+      const filteredLeads = leadsArray.filter((lead: any) => {
+        // Only include leads that were modified (converted) within the date range
+        if (lead.lastModifiedTime) {
+          const leadModifiedDate = new Date(lead.lastModifiedTime);
+          return leadModifiedDate >= startDateObj && leadModifiedDate <= endDateObj;
+        }
+        return false;
+      });
+
+      console.log(`[Agent Performance] Found ${filteredLeads.length} leads modified within date range`);
+
+      // Create a map of leadId to agents who called them
+      const leadToAgentsMap = new Map<string, Set<number>>();
+      
+      // Build the mapping based on actual call activity
+      filteredCdrArray.forEach((cdr: any) => {
+        if (cdr.leadId) {
+          const leadId = cdr.leadId.toString();
+          const agentId = parseInt(cdr.userId) || 0;
+          
+          if (!leadToAgentsMap.has(leadId)) {
+            leadToAgentsMap.set(leadId, new Set());
+          }
+          leadToAgentsMap.get(leadId)!.add(agentId);
+        }
+      });
+
+      // Process filtered leads and associate with agents who actually called them
+      filteredLeads.forEach((lead: any) => {
+        const leadId = lead.id?.toString();
+        if (leadId && leadToAgentsMap.has(leadId)) {
+          const agentsWhoCalled = leadToAgentsMap.get(leadId)!;
+          
+          // Count this lead for each agent who called it
+          agentsWhoCalled.forEach(agentId => {
+            if (agentStats[agentId]) {
+              agentStats[agentId].totalLeads++;
+              if (lead.status === 'success') {
+                agentStats[agentId].convertedLeads++;
+              }
             }
           });
         }
@@ -464,8 +484,8 @@ export class ReportGenerator {
           totalAgents: agentPerformance.length,
           activeAgents: agentPerformance.filter((a: any) => a.totalCalls > 0).length,
           totalCalls: filteredCdrArray.length,
-          totalLeads: leadsArray.length,
-          totalConvertedLeads: leadsArray.filter((l: any) => l.status === 'success').length,
+          totalLeads: filteredLeads.length,
+          totalConvertedLeads: filteredLeads.filter((l: any) => l.status === 'success').length,
         },
         generatedAt: new Date().toISOString(),
       };
@@ -500,11 +520,17 @@ export class ReportGenerator {
             return callDate >= startDateObj && callDate <= endDateObj;
           });
 
-          // Don't filter leads by date - leads represent the total pool of contacts
-          // that can be called, regardless of when they were created
-          const filteredLeadsArray = leadsArray;
+          // Filter leads by date range - only include leads that were modified (converted) within the date range
+          const filteredLeadsArray = leadsArray.filter((lead: any) => {
+            // Only include leads that were modified (converted) within the date range
+            if (lead.lastModifiedTime) {
+              const leadModifiedDate = new Date(lead.lastModifiedTime);
+              return leadModifiedDate >= startDateObj && leadModifiedDate <= endDateObj;
+            }
+            return false;
+          });
 
-          console.log(`[Campaign Analytics] Processing ${filteredCdrArray.length} CDR records and ${filteredLeadsArray.length} leads across ${campaignsArray.length} campaigns`);
+          console.log(`[Campaign Analytics] Processing ${filteredCdrArray.length} CDR records and ${filteredLeadsArray.length} leads (modified within date range) across ${campaignsArray.length} campaigns`);
           
           // Debug: Log sample leads data
           if (filteredLeadsArray.length > 0) {
