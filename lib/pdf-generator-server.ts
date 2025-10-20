@@ -894,96 +894,60 @@ export class ServerPDFGenerator {
   private async generateCampaignAnalyticsPDF(reportData: ReportData) {
     const { summary, data } = reportData;
     
-    // Summary cards
-    this.addSectionTitle('Campaign Overview');
+    // Summary cards - match web version exactly (5 cards)
+    this.addSectionTitle('🎯 Campaign Analytics Report');
     
     const summaryCards = [
       { label: 'Total Campaigns', value: summary.totalCampaigns?.toString() || '0', color: this.colors.primary },
       { label: 'Active Campaigns', value: summary.activeCampaigns?.toString() || '0', color: this.colors.success },
       { label: 'Total Calls', value: summary.totalCalls?.toLocaleString() || '0', color: this.colors.purple },
       { label: 'Total Leads', value: summary.totalLeads?.toLocaleString() || '0', color: this.colors.indigo },
-      { label: 'Converted Leads', value: summary.totalConvertedLeads?.toLocaleString() || '0', color: this.colors.success },
       { label: 'Total Duration', value: this.formatDuration(summary.totalDuration || 0), color: this.colors.warning },
     ];
     
-    this.addMetricCards(summaryCards, 4);
+    this.addMetricCards(summaryCards, 5);
     
     this.currentY += 30;
     
-    // Campaign calls comparison
-    if (this.needsNewPage(300)) {
-      this.addPage();
-    }
-    
-    this.addSectionTitle('Calls by Campaign (Top 10)');
-    
-    const campaigns = data.campaignAnalytics || [];
-    const topCampaigns = campaigns
-      .filter((c: any) => c.totalCalls > 0)
-      .slice(0, 10);
-    
-    if (topCampaigns.length > 0) {
-      await this.addBarChart(
-        topCampaigns.map((campaign: any) => ({
-          label: this.truncateText(campaign.campaignName, 15),
-          value: campaign.totalCalls || 0,
-          color: this.colors.primary
-        })),
-        'Campaign',
-        'Total Calls'
-      );
-    }
-    
-    this.currentY += 30;
-    
-    // Conversion rate comparison
-    if (this.needsNewPage(300)) {
-      this.addPage();
-    }
-    
-    this.addSectionTitle('Conversion Rate by Campaign');
-    
-    const campaignsWithLeads = campaigns.filter((c: any) => c.totalLeads > 0).slice(0, 10);
-    
-    if (campaignsWithLeads.length > 0) {
-      await this.addBarChart(
-        campaignsWithLeads.map((campaign: any) => ({
-          label: this.truncateText(campaign.campaignName, 15),
-          value: parseFloat(campaign.conversionRate || '0'),
-          color: this.colors.success
-        })),
-        'Campaign',
-        'Conversion Rate (%)'
-      );
-    }
-    
-    this.currentY += 30;
-    
-    // Campaign details table
-    if (this.needsNewPage(200)) {
-      this.addPage();
-    }
+    // Campaign Performance Details Table - use landscape page for better fit
+    this.addLandscapePage();
     
     this.addSectionTitle('Campaign Performance Details');
     
-    const tableData = campaigns
-      .slice(0, 15)
-      .map((campaign: any) => [
-        this.truncateText(campaign.campaignName, 25),
-        campaign.status || 'N/A',
-        campaign.totalCalls?.toLocaleString() || '0',
-        campaign.answeredCalls?.toLocaleString() || '0',
-        `${campaign.answerRate || 0}%`,
-        campaign.totalLeads?.toLocaleString() || '0',
-        campaign.convertedLeads?.toLocaleString() || '0',
-        `${campaign.conversionRate || 0}%`,
-      ]);
-    
-    this.addTable(
-      ['Campaign', 'Status', 'Calls', 'Answered', 'Answer %', 'Leads', 'Converted', 'Conv %'],
-      tableData,
-      [110, 50, 50, 60, 55, 50, 60, 55]
-    );
+    if (data.campaignAnalytics && data.campaignAnalytics.length > 0) {
+      // Match web version table headers exactly (19 columns)
+      const tableHeaders = [
+        'Campaign', 'Status', 'Total Calls', 'Inbound', 'Outbound', 'Answered', 'Missed', 
+        'Busy', 'Congestion', 'Total Talk Time', 'Avg Duration', 'Answer Rate', 
+        'Total Leads', 'Converted', 'Conversion Rate', 'Unique Callers', 'Unique Destinations'
+      ];
+      
+      const tableRows = data.campaignAnalytics
+        .filter((campaign: any) => campaign.totalCalls > 0)
+        .map((campaign: any) => [
+          this.truncateText(campaign.campaignName || `Campaign ${campaign.campaignId}`, 15),
+          campaign.status || 'N/A',
+          campaign.totalCalls?.toString() || '0',
+          campaign.inboundCalls?.toString() || '0',
+          campaign.outboundCalls?.toString() || '0',
+          campaign.answeredCalls?.toString() || '0',
+          campaign.missedCalls?.toString() || '0',
+          campaign.busyCalls?.toString() || '0',
+          campaign.congestionCalls?.toString() || '0',
+          this.formatDuration(campaign.totalTalkTime || 0),
+          this.formatDuration(campaign.avgDuration || 0),
+          `${campaign.answerRate || 0}%`,
+          campaign.totalLeads?.toString() || '0',
+          campaign.convertedLeads?.toString() || '0',
+          `${campaign.conversionRate || 0}%`,
+          campaign.uniqueCallers?.toString() || '0',
+          campaign.uniqueDestinations?.toString() || '0'
+        ]);
+
+      // Use narrow column widths for landscape page (17 columns)
+      const columnWidths = [80, 40, 45, 40, 40, 45, 40, 35, 45, 60, 50, 50, 45, 45, 60, 50, 60];
+      this.addTable(tableHeaders, tableRows, columnWidths);
+    }
   }
 
   /**
@@ -1012,6 +976,9 @@ export class ServerPDFGenerator {
       text = title.substring(2).trim();
     } else if (title.startsWith('👥')) {
       emoji = '👥';
+      text = title.substring(2).trim();
+    } else if (title.startsWith('🎯')) {
+      emoji = '🎯';
       text = title.substring(2).trim();
     }
     
@@ -1156,6 +1123,7 @@ export class ServerPDFGenerator {
       '📱': 'inbound.png',
       '📊': 'two-way-communication.png',
       '👥': 'call-center-service.png',
+      '🎯': 'target.png',
     };
     const filename = iconMap[emoji] || 'default.png';
     return path.join(process.cwd(), 'public', 'icons', filename);
@@ -1170,6 +1138,7 @@ export class ServerPDFGenerator {
       '📱': this.colors.indigo,   // Inbound = indigo
       '📊': this.colors.primary,  // Comparison = blue
       '👥': this.colors.success,  // Agent Performance = green
+      '🎯': this.colors.purple,   // Campaign Analytics = purple
     };
     return colorMap[emoji] || this.colors.primary;
   }
