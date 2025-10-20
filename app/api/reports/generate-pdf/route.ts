@@ -2,8 +2,49 @@ import { NextRequest, NextResponse } from 'next/server';
 import { ReportGenerator } from '@/lib/report-generator';
 import { ServerPDFGenerator } from '@/lib/pdf-generator-server';
 import { reportCache } from '@/lib/report-cache';
+import fs from 'fs';
+import path from 'path';
+
+// Setup fonts for PDFKit on Vercel
+function setupPDFKitFonts() {
+  if (!process.env.VERCEL) return; // Only needed on Vercel
+  
+  try {
+    const publicFontsPath = path.join(process.cwd(), 'public', 'fonts');
+    const targetPath = path.join('/tmp', 'data'); // PDFKit looks in ./data relative to execution
+    
+    // Create target directory if it doesn't exist
+    if (!fs.existsSync(targetPath)) {
+      fs.mkdirSync(targetPath, { recursive: true });
+    }
+    
+    // Check if fonts already copied (for warm lambda)
+    const targetHelveticaPath = path.join(targetPath, 'Helvetica.afm');
+    if (fs.existsSync(targetHelveticaPath)) {
+      console.log('[PDF Setup] Fonts already available');
+      return;
+    }
+    
+    // Copy all font files from public/fonts to /tmp/data
+    if (fs.existsSync(publicFontsPath)) {
+      const fontFiles = fs.readdirSync(publicFontsPath);
+      fontFiles.forEach(file => {
+        const sourcePath = path.join(publicFontsPath, file);
+        const destPath = path.join(targetPath, file);
+        fs.copyFileSync(sourcePath, destPath);
+      });
+      console.log(`[PDF Setup] Copied ${fontFiles.length} font files to ${targetPath}`);
+    } else {
+      console.error('[PDF Setup] Font source directory not found:', publicFontsPath);
+    }
+  } catch (error) {
+    console.error('[PDF Setup] Error setting up fonts:', error);
+  }
+}
 
 export async function POST(request: NextRequest) {
+  // Setup fonts before PDF generation
+  setupPDFKitFonts();
   try {
     const body = await request.json();
     const { reportType, startDate, endDate } = body;

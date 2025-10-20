@@ -40,12 +40,10 @@ export class ServerPDFGenerator {
 
   constructor() {
     // Configure font path for both Vercel and local environments
-    // Fonts are copied to public/fonts directory
-    const publicFontsPath = path.join(process.cwd(), 'public', 'fonts');
-    
-    // Try multiple possible font locations
+    // On Vercel, fonts are copied to /tmp/data by the API route
     const possibleFontPaths = [
-      publicFontsPath,  // Vercel and production
+      path.join('/tmp', 'data'), // Vercel - fonts copied here by API route
+      path.join(process.cwd(), 'public', 'fonts'), // Vercel fallback
       path.join(process.cwd(), 'node_modules', 'pdfkit', 'js', 'data'), // Local dev
       path.join(__dirname, '..', '..', 'public', 'fonts'), // Alternative path
     ];
@@ -55,9 +53,34 @@ export class ServerPDFGenerator {
       if (fs.existsSync(fontPath)) {
         const helveticaPath = path.join(fontPath, 'Helvetica.afm');
         if (fs.existsSync(helveticaPath)) {
-          // Set the AFM path that PDFKit will use
-          process.env.FONTKIT_AFM_PATH = fontPath;
           console.log(`[PDF Generator] Using font path: ${fontPath}`);
+          // Change working directory so PDFKit can find fonts in ./data
+          try {
+            const dataDir = path.dirname(fontPath);
+            if (process.cwd() !== dataDir) {
+              // PDFKit looks for data/ relative to cwd, so we create a symlink or copy
+              const targetDataPath = path.join(process.cwd(), 'data');
+              if (!fs.existsSync(targetDataPath)) {
+                fs.symlinkSync(fontPath, targetDataPath, 'dir');
+                console.log(`[PDF Generator] Created symlink: ${targetDataPath} -> ${fontPath}`);
+              }
+            }
+          } catch (symlinkError) {
+            // Symlink failed, try copying
+            try {
+              const targetDataPath = path.join(process.cwd(), 'data');
+              if (!fs.existsSync(targetDataPath)) {
+                fs.mkdirSync(targetDataPath, { recursive: true });
+                const files = fs.readdirSync(fontPath);
+                files.forEach(file => {
+                  fs.copyFileSync(path.join(fontPath, file), path.join(targetDataPath, file));
+                });
+                console.log(`[PDF Generator] Copied fonts to: ${targetDataPath}`);
+              }
+            } catch (copyError) {
+              console.error('[PDF Generator] Failed to setup fonts:', copyError);
+            }
+          }
           break;
         }
       }
