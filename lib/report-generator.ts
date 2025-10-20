@@ -295,8 +295,8 @@ export class ReportGenerator {
       // Fetch users (agents), CDR data, and leads data in parallel
       const [usersResponse, cdrResponse, leadsResponse] = await Promise.all([
         this.client.getAgents({ limit: 1000 }),
-        this.client.getCalls({ startDate, endDate, limit: 1000, fetchAll: false }), // Single page for speed
-        this.client.getLeads({ limit: 1000, fetchAll: false }), // Single page for speed
+        this.client.getCalls({ startDate, endDate, limit: 10000 }), // Fetch all calls
+        this.client.getLeads({ limit: 10000 }), // Fetch all leads
       ]);
 
       const usersArray = Array.isArray(usersResponse) ? usersResponse : (usersResponse.users || usersResponse.data || []);
@@ -478,13 +478,13 @@ export class ReportGenerator {
       async generateCampaignAnalyticsReport(startDate: string, endDate: string): Promise<ReportData> {
         try {
           console.log(`[Campaign Analytics] Fetching CDRs and Leads for range: ${startDate} to ${endDate}`);
-          console.log(`[Campaign Analytics] Using SINGLE PAGE fetching for maximum speed...`);
+          console.log(`[Campaign Analytics] Fetching all data for accurate reporting...`);
           
           // Fetch campaigns, CDR data, and leads data in parallel with minimal limits
           const [campaignsResponse, cdrResponse, leadsResponse] = await Promise.all([
             this.client.getCampaigns({ limit: 50 }), // Campaigns are usually few
-            this.client.getCalls({ startDate, endDate, limit: 1000, fetchAll: false }), // Single page only
-            this.client.getLeads({ limit: 1000, fetchAll: false }), // Single page only - no date filtering
+            this.client.getCalls({ startDate, endDate, limit: 10000 }), // Fetch all calls
+            this.client.getLeads({ limit: 10000 }), // Fetch all leads
           ]);
 
           const campaignsArray = Array.isArray(campaignsResponse) ? campaignsResponse : (campaignsResponse.campaigns || campaignsResponse.data || []);
