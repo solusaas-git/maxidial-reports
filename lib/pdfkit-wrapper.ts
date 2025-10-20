@@ -10,6 +10,7 @@ if (process.env.VERCEL) {
   try {
     const Module = require('module');
     const originalRequire = Module.prototype.require;
+    const originalResolve = Module.prototype.require.resolve;
     
     // Intercept all require('canvas') calls and redirect to @napi-rs/canvas
     Module.prototype.require = function(id: string) {
@@ -18,7 +19,23 @@ if (process.env.VERCEL) {
         return originalRequire.call(this, '@napi-rs/canvas');
       }
       return originalRequire.apply(this, arguments);
+    } as any;
+    
+    // Also intercept require.resolve() calls
+    Module.prototype.require.resolve = function(id: string, options?: any) {
+      if (id === 'canvas') {
+        console.log('[PDFKit Wrapper] Redirecting canvas resolve to @napi-rs/canvas');
+        return originalResolve.call(this, '@napi-rs/canvas', options);
+      }
+      return originalResolve.apply(this, arguments);
     };
+    
+    // Copy other properties from original require
+    Object.keys(originalRequire).forEach(key => {
+      if (key !== 'resolve' && !(key in Module.prototype.require)) {
+        (Module.prototype.require as any)[key] = (originalRequire as any)[key];
+      }
+    });
     
     console.log('[PDFKit Wrapper] ✓ Canvas module redirection active');
   } catch (error) {
