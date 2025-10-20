@@ -52,9 +52,9 @@ export class ClientChartGenerator {
   ): Promise<string> {
     return new Promise((resolve, reject) => {
       try {
-        // Create a canvas element
+        // Create a canvas element with better aspect ratio
         const canvas = document.createElement('canvas');
-        canvas.width = 800;
+        canvas.width = 600;
         canvas.height = 400;
         
         const ctx = canvas.getContext('2d');
@@ -69,6 +69,8 @@ export class ClientChartGenerator {
           options: {
             ...options,
             responsive: false,
+            maintainAspectRatio: true,
+            aspectRatio: 1.5, // 3:2 aspect ratio (600:400)
             animation: {
               onComplete: () => {
                 // Convert canvas to base64 image
