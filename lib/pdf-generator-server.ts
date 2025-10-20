@@ -768,8 +768,8 @@ export class ServerPDFGenerator {
           ];
         });
       
-      // Use optimized column widths for landscape page (14 columns) - ensure all fit
-      const columnWidths = [40, 120, 50, 50, 50, 50, 50, 70, 70, 70, 70, 50, 60, 50];
+      // Use very narrow column widths for landscape page (14 columns) - ensure all fit
+      const columnWidths = [35, 100, 45, 45, 45, 45, 45, 60, 60, 60, 60, 45, 55, 45];
       const totalWidth = columnWidths.reduce((sum, width) => sum + width, 0);
       console.log(`[PDF] Table total width: ${totalWidth}, content width: ${this.contentWidth}, page width: ${this.pageWidth}`);
       
@@ -1387,6 +1387,8 @@ export class ServerPDFGenerator {
   private addTable(headers: string[], rows: string[][], columnWidths?: number[]) {
     const tableWidth = this.contentWidth;
     const numColumns = headers.length;
+    
+    console.log(`[PDF] addTable: ${numColumns} columns, tableWidth: ${tableWidth}, pageWidth: ${this.pageWidth}`);
     
     // Calculate column widths if not provided
     if (!columnWidths) {
