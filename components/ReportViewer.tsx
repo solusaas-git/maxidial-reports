@@ -37,15 +37,21 @@ export default function ReportViewer({ reportData, onExport }: ReportViewerProps
 
     if (reportData.reportType === 'call-summary') {
       const calls = reportData.data.calls || [];
-      const outboundCalls = calls.filter((call: any) => call.direction === 'outbound');
-      const inboundCalls = calls.filter((call: any) => call.direction === 'inbound');
+      const getDirection = (c: any) => (c.direction || c.type || '').toString().toLowerCase();
+      const outboundCalls = calls.filter((call: any) => getDirection(call) === 'outbound');
+      const inboundCalls = calls.filter((call: any) => getDirection(call) === 'inbound');
 
       // Helper to count calls by status
       const countByStatus = (callList: any[]) => {
-        const answered = callList.filter((c: any) => c.disposition === 'ANSWERED').length;
-        const noAnswer = callList.filter((c: any) => c.disposition === 'NO ANSWER').length;
-        const busy = callList.filter((c: any) => c.disposition === 'BUSY').length;
-        const congestion = callList.filter((c: any) => c.disposition === 'CONGESTION').length;
+        const norm = (v: any) => (v || '').toString().trim().toLowerCase().replace(/[_\s-]+/g, '');
+        let answered = 0, noAnswer = 0, busy = 0, congestion = 0;
+        for (const c of callList) {
+          const d = norm(c.disposition);
+          if (d === 'answered') answered++;
+          else if (d === 'noanswer') noAnswer++;
+          else if (d === 'busy') busy++;
+          else if (d === 'congestion') congestion++;
+        }
         return { answered, noAnswer, busy, congestion };
       };
 
