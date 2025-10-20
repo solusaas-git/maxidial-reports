@@ -990,11 +990,11 @@ export class ServerPDFGenerator {
     this.addSectionTitle('Campaign Performance Details');
     
     if (data.campaignAnalytics && data.campaignAnalytics.length > 0) {
-      // Match web version table headers exactly (17 columns)
+      // Match web version table headers (15 columns - removed Unique columns)
       const tableHeaders = [
         'Campaign', 'Status', 'Total Calls', 'Inbound', 'Outbound', 'Answered', 'Missed', 
         'Busy', 'Congestion', 'Total Talk Time', 'Avg Duration', 'Answer Rate', 
-        'Total Leads', 'Converted', 'Conversion Rate', 'Unique Callers', 'Unique Destinations'
+        'Total Leads', 'Converted', 'Conversion Rate'
       ];
       
       const tableRows = data.campaignAnalytics
@@ -1014,13 +1014,11 @@ export class ServerPDFGenerator {
           `${campaign.answerRate || 0}%`,
           campaign.totalLeads?.toString() || '0',
           campaign.convertedLeads?.toString() || '0',
-          `${campaign.conversionRate || 0}%`,
-          campaign.uniqueCallers?.toString() || '0',
-          campaign.uniqueDestinations?.toString() || '0'
+          `${campaign.conversionRate || 0}%`
         ]);
 
-      // Use very narrow column widths for landscape page (17 columns) - total: 680px
-      const columnWidths = [60, 30, 35, 30, 30, 35, 30, 25, 35, 50, 40, 40, 35, 35, 50, 40, 50];
+      // Use wider column widths for landscape page (15 columns) - total: 680px
+      const columnWidths = [70, 35, 40, 35, 35, 40, 35, 30, 40, 55, 45, 45, 40, 40, 60];
       this.addTable(tableHeaders, tableRows, columnWidths);
     }
   }
