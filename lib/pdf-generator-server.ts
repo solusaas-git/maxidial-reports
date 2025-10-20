@@ -681,16 +681,15 @@ export class ServerPDFGenerator {
       .slice(0, 5);
     
     if (topAgents.length > 0) {
-      // Top performers cards with better styling
-      const topPerformerCards = topAgents.map((agent: any, index: number) => ({
+      // Top performers cards
+      const topPerformerCards = topAgents.map((agent: any) => ({
         label: agent.agentName || `Agent ${agent.agentId}`,
         value: `${agent.conversionRate}%`,
         color: this.colors.success,
-        subtitle: `${agent.convertedLeads} converted / ${agent.totalCalls} calls`,
-        rank: index + 1
+        subtitle: `${agent.totalCalls} calls, ${agent.convertedLeads} converted`
       }));
       
-      this.addTopPerformerCards(topPerformerCards);
+      this.addMetricCards(topPerformerCards, 2);
       this.currentY += 15;
     }
     
@@ -1240,9 +1239,9 @@ export class ServerPDFGenerator {
   /**
    * Add top performer cards (larger, more prominent)
    */
-  private addTopPerformerCards(cards: Array<{label: string; value: string; color: string; subtitle?: string; rank?: number}>) {
+  private addTopPerformerCards(cards: Array<{label: string; value: string; color: string; subtitle?: string}>) {
     const cardWidth = (this.contentWidth - 20) / 3; // 3 cards per row for top performers
-    const cardHeight = 100;
+    const cardHeight = 90;
     
     cards.forEach((card, index) => {
       const row = Math.floor(index / 3);
@@ -1256,81 +1255,48 @@ export class ServerPDFGenerator {
         return;
       }
       
-      // Card background with border
+      // Card background with color accent
       this.doc
-        .roundedRect(x, y, cardWidth, cardHeight, 8)
-        .fillAndStroke(this.colors.white, this.colors.lightGray);
+        .roundedRect(x, y, cardWidth, cardHeight, 5)
+        .fillAndStroke(this.colors.white, card.color);
       
-      // Rank badge with medal colors (like web version)
-      const rank = card.rank || (index + 1);
-      if (rank <= 3) {
-        const medalColors = {
-          1: '#FFD700', // Gold
-          2: '#C0C0C0', // Silver  
-          3: '#CD7F32'  // Bronze
-        };
-        const medalColor = medalColors[rank as keyof typeof medalColors];
-        
-        // Medal circle
+      // Rank badge (top 3)
+      if (index < 3) {
+        const emoji = index === 0 ? '🥇' : index === 1 ? '🥈' : '🥉';
         this.doc
-          .circle(x + 15, y + 20, 12)
-          .fill(medalColor);
-        
-        // Rank number
-        this.doc
-          .fontSize(12)
-          .fillColor(this.colors.white)
-          .font('Helvetica-Bold')
-          .text(rank.toString(), x + 15, y + 15, {
-            width: 24,
-            align: 'center'
-          });
-        
-        // Trophy emoji for top 3
-        this.doc
-          .fontSize(16)
-          .text('🏆', x + cardWidth - 25, y + 15);
+          .fontSize(20)
+          .text(emoji, x + cardWidth - 35, y + 10);
       }
       
-      // Agent name
+      // Label (agent name)
       this.doc
-        .fontSize(12)
+        .fontSize(11)
         .fillColor(this.colors.darkGray)
         .font('Helvetica-Bold')
-        .text(card.label, x + 35, y + 15, {
+        .text(card.label, x + 10, y + 15, {
           width: cardWidth - 50,
           align: 'left'
         });
       
-      // Conversion rate (large, prominent)
+      // Value (conversion rate)
       this.doc
-        .fontSize(28)
-        .fillColor(this.colors.success)
+        .fontSize(22)
+        .fillColor(card.color)
         .font('Helvetica-Bold')
-        .text(card.value, x + 10, y + 40, {
+        .text(card.value, x + 10, y + 35, {
           width: cardWidth - 20,
-          align: 'center'
+          align: 'left'
         });
       
-      // "Conversion Rate" label
-      this.doc
-        .fontSize(8)
-        .fillColor(this.colors.gray)
-        .font('Helvetica')
-        .text('Conversion Rate', x + 10, y + 70, {
-          width: cardWidth - 20,
-          align: 'center'
-        });
-      
-      // Subtitle with metrics
+      // Subtitle
       if (card.subtitle) {
         this.doc
-          .fontSize(9)
+          .fontSize(8)
           .fillColor(this.colors.gray)
           .font('Helvetica')
-          .text(card.subtitle, x + 10, y + 85, {
+          .text(card.subtitle, x + 10, y + 65, {
             width: cardWidth - 20,
-            align: 'center'
+            align: 'left'
           });
       }
     });
