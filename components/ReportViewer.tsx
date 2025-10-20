@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { ReportData } from '@/lib/report-generator';
 import { BarChart, Bar, LineChart, Line, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { Download, Users, Target, Phone, CheckCircle, XCircle, AlertCircle, ArrowLeftRight, Clock } from 'lucide-react';
+import { ClientChartGenerator } from '@/lib/chart-generator-client';
 
 interface ReportViewerProps {
   reportData: ReportData | null;
@@ -30,12 +31,117 @@ export default function ReportViewer({ reportData, onExport }: ReportViewerProps
     return null;
   }
 
+  // Generate charts for PDF export
+  const generateChartsForReport = async (): Promise<Record<string, string>> => {
+    const charts: Record<string, string> = {};
+
+    if (reportData.reportType === 'call-summary') {
+      const calls = reportData.data.calls || [];
+      const outboundCalls = calls.filter((call: any) => call.direction === 'outbound');
+      const inboundCalls = calls.filter((call: any) => call.direction === 'inbound');
+
+      // Helper to count calls by status
+      const countByStatus = (callList: any[]) => {
+        const answered = callList.filter((c: any) => c.disposition === 'ANSWERED').length;
+        const noAnswer = callList.filter((c: any) => c.disposition === 'NO ANSWER').length;
+        const busy = callList.filter((c: any) => c.disposition === 'BUSY').length;
+        const congestion = callList.filter((c: any) => c.disposition === 'CONGESTION').length;
+        return { answered, noAnswer, busy, congestion };
+      };
+
+      const outboundStatus = countByStatus(outboundCalls);
+      const inboundStatus = countByStatus(inboundCalls);
+      const overallStatus = countByStatus(calls);
+
+      // Generate outbound status pie chart
+      const outboundData = [
+        { label: 'Answered', value: outboundStatus.answered, color: '#10b981' },
+        { label: 'No Answer', value: outboundStatus.noAnswer, color: '#ef4444' },
+        { label: 'Busy', value: outboundStatus.busy, color: '#f59e0b' },
+        { label: 'Congestion', value: outboundStatus.congestion, color: '#64748b' },
+      ].filter(item => item.value > 0);
+
+      if (outboundData.length > 0) {
+        charts['outbound-status-pie'] = await ClientChartGenerator.generatePieChart({
+          labels: outboundData.map(d => d.label),
+          datasets: [{
+            label: 'Outbound Calls',
+            data: outboundData.map(d => d.value),
+            backgroundColor: outboundData.map(d => d.color),
+          }]
+        }, {
+          plugins: {
+            legend: { position: 'right' },
+            title: { display: false }
+          }
+        });
+      }
+
+      // Generate inbound status pie chart
+      const inboundData = [
+        { label: 'Answered', value: inboundStatus.answered, color: '#10b981' },
+        { label: 'No Answer', value: inboundStatus.noAnswer, color: '#ef4444' },
+        { label: 'Busy', value: inboundStatus.busy, color: '#f59e0b' },
+        { label: 'Congestion', value: inboundStatus.congestion, color: '#64748b' },
+      ].filter(item => item.value > 0);
+
+      if (inboundData.length > 0) {
+        charts['inbound-status-pie'] = await ClientChartGenerator.generatePieChart({
+          labels: inboundData.map(d => d.label),
+          datasets: [{
+            label: 'Inbound Calls',
+            data: inboundData.map(d => d.value),
+            backgroundColor: inboundData.map(d => d.color),
+          }]
+        }, {
+          plugins: {
+            legend: { position: 'right' },
+            title: { display: false }
+          }
+        });
+      }
+
+      // Generate comparison status pie chart
+      const comparisonData = [
+        { label: 'Answered', value: overallStatus.answered, color: '#10b981' },
+        { label: 'No Answer', value: overallStatus.noAnswer, color: '#ef4444' },
+        { label: 'Busy', value: overallStatus.busy, color: '#f59e0b' },
+        { label: 'Congestion', value: overallStatus.congestion, color: '#64748b' },
+      ].filter(item => item.value > 0);
+
+      if (comparisonData.length > 0) {
+        charts['comparison-status-pie'] = await ClientChartGenerator.generatePieChart({
+          labels: comparisonData.map(d => d.label),
+          datasets: [{
+            label: 'All Calls',
+            data: comparisonData.map(d => d.value),
+            backgroundColor: comparisonData.map(d => d.color),
+          }]
+        }, {
+          plugins: {
+            legend: { position: 'right' },
+            title: { display: false }
+          }
+        });
+      }
+    }
+
+    return charts;
+  };
+
   const handlePDFExport = async () => {
     setIsExporting(true);
     try {
-      console.log('Starting server-side PDF generation for:', reportData.reportType);
+      console.log('Starting PDF generation for:', reportData.reportType);
+      console.log('Step 1: Generating charts client-side...');
       
-      // Call server-side PDF generation API
+      // Generate charts client-side
+      const chartImages = await generateChartsForReport();
+      console.log(`Generated ${Object.keys(chartImages).length} chart images`);
+      
+      console.log('Step 2: Calling server-side PDF generation API...');
+      
+      // Call server-side PDF generation API with pre-generated chart images
       const response = await fetch('/api/reports/generate-pdf', {
         method: 'POST',
         headers: {
@@ -45,6 +151,7 @@ export default function ReportViewer({ reportData, onExport }: ReportViewerProps
           reportType: reportData.reportType,
           startDate: reportData.dateRange.startDate,
           endDate: reportData.dateRange.endDate,
+          chartImages, // Send pre-generated chart images
         }),
       });
 
@@ -52,6 +159,8 @@ export default function ReportViewer({ reportData, onExport }: ReportViewerProps
         const errorData = await response.json();
         throw new Error(errorData.message || 'Failed to generate PDF');
       }
+
+      console.log('Step 3: Downloading PDF...');
 
       // Get the PDF blob
       const blob = await response.blob();

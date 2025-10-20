@@ -6,7 +6,7 @@ import { reportCache } from '@/lib/report-cache';
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { reportType, startDate, endDate } = body;
+    const { reportType, startDate, endDate, chartImages } = body;
 
     if (!reportType || !startDate || !endDate) {
       return NextResponse.json(
@@ -20,6 +20,7 @@ export async function POST(request: NextRequest) {
 
     console.log(`[PDF Generation] Starting PDF generation for ${reportType}`);
     console.log(`[PDF Generation] Date range: ${startDate} to ${endDate}`);
+    console.log(`[PDF Generation] Chart images provided: ${chartImages ? Object.keys(chartImages).length : 0}`);
 
     // Check cache first
     let reportData = reportCache.get(reportType, startDate, endDate);
@@ -38,11 +39,12 @@ export async function POST(request: NextRequest) {
 
     console.log(`[PDF Generation] Report data ready`);
 
-    // Generate PDF
-    const pdfGenerator = new ServerPDFGenerator();
+    // Generate PDF with pre-generated chart images
+    const pdfGenerator = new ServerPDFGenerator(chartImages);
     const pdfDoc = await pdfGenerator.generatePDF(reportData, {
       title: getReportTitle(reportType),
-      dateRange: { startDate, endDate }
+      dateRange: { startDate, endDate },
+      chartImages
     });
 
     console.log(`[PDF Generation] PDF document created, streaming response...`);

@@ -314,7 +314,7 @@ export class ServerPDFGenerator {
     ].filter(item => item.value > 0);
     
     if (statusData.length > 0) {
-      await this.addPieChart(statusData);
+      await this.addPieChart(statusData, 'outbound-status-pie');
     }
     
     this.currentY += 15;
@@ -415,7 +415,7 @@ export class ServerPDFGenerator {
     ].filter(item => item.value > 0);
     
     if (statusData.length > 0) {
-      await this.addPieChart(statusData);
+      await this.addPieChart(statusData, 'inbound-status-pie');
     }
     
     this.currentY += 15;
@@ -526,7 +526,7 @@ export class ServerPDFGenerator {
     ].filter(item => item.value > 0);
     
     if (statusData.length > 0) {
-      await this.addPieChart(statusData);
+      await this.addPieChart(statusData, 'comparison-status-pie');
     }
     
     this.currentY += 15;
@@ -1080,245 +1080,79 @@ export class ServerPDFGenerator {
   }
 
   /**
-   * Add pie chart
+   * Add pie chart (uses pre-generated image)
    */
-  private async addPieChart(data: Array<{label: string; value: number; color: string}>) {
-    const chartHeight = 200; // Reduced from 250
+  private async addPieChart(data: Array<{label: string; value: number; color: string}>, chartKey: string = 'pie') {
+    const chartHeight = 200;
     
     if (this.needsNewPage(chartHeight)) {
       this.addPage();
     }
     
-    const total = data.reduce((sum, item) => sum + item.value, 0);
-    
-    const configuration = {
-      type: 'pie' as const,
-      data: {
-        labels: data.map(item => item.label),
-        datasets: [{
-          data: data.map(item => item.value),
-          backgroundColor: data.map(item => item.color),
-        }]
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: {
-          legend: {
-            position: 'right' as const,
-            labels: {
-              font: {
-                size: 12
-              },
-              padding: 10,
-              generateLabels: (chart: any) => {
-                const dataset = chart.data.datasets[0];
-                return chart.data.labels.map((label: string, i: number) => {
-                  const value = dataset.data[i];
-                  const percentage = ((value / total) * 100).toFixed(1);
-                  return {
-                    text: `${label}: ${value.toLocaleString()} (${percentage}%)`,
-                    fillStyle: dataset.backgroundColor[i],
-                    hidden: false,
-                    index: i
-                  };
-                });
-              }
-            }
-          },
-          title: {
-            display: false
-          }
-        }
-      }
-    };
-    
-    const imageBuffer = await this.chartGenerator.renderToBuffer(configuration as any);
-    
-    const imgWidth = this.contentWidth * 0.9; // 90% of content width
-    const imgHeight = (300 * imgWidth) / 800; // Use actual chart height
-    
-    this.doc.image(imageBuffer, this.pageMargin, this.currentY, {
-      width: imgWidth,
-      height: imgHeight
-    });
-    
-    this.currentY += imgHeight + 10;
+    // Use pre-generated chart image
+    const chartImage = this.chartImages[chartKey];
+    if (chartImage) {
+      this.embedBase64Image(chartImage);
+    } else {
+      console.warn(`[PDF Generator] Chart image not found: ${chartKey}`);
+      this.doc.fontSize(10).fillColor(this.colors.danger)
+        .text('Chart not available', this.pageMargin, this.currentY);
+      this.currentY += 20;
+    }
   }
 
   /**
-   * Add bar chart
+   * Add bar chart (uses pre-generated image)
    */
   private async addBarChart(
     data: Array<{label: string; value: number; color: string}>, 
     xLabel: string = '',
-    yLabel: string = ''
+    yLabel: string = '',
+    chartKey: string = 'bar'
   ) {
-    const chartHeight = 200; // Reduced from 250
+    const chartHeight = 200;
     
     if (this.needsNewPage(chartHeight)) {
       this.addPage();
     }
     
-    const configuration = {
-      type: 'bar' as const,
-      data: {
-        labels: data.map(item => item.label),
-        datasets: [{
-          label: yLabel,
-          data: data.map(item => item.value),
-          backgroundColor: data.map(item => item.color),
-        }]
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: {
-          legend: {
-            display: false
-          },
-          title: {
-            display: false
-          }
-        },
-        scales: {
-          y: {
-            beginAtZero: true,
-            ticks: {
-              font: {
-                size: 10
-              }
-            },
-            title: {
-              display: !!yLabel,
-              text: yLabel,
-              font: {
-                size: 12
-              }
-            }
-          },
-          x: {
-            ticks: {
-              font: {
-                size: 10
-              }
-            },
-            title: {
-              display: !!xLabel,
-              text: xLabel,
-              font: {
-                size: 12
-              }
-            }
-          }
-        }
-      }
-    };
-    
-    const imageBuffer = await this.chartGenerator.renderToBuffer(configuration as any);
-    
-    const imgWidth = this.contentWidth * 0.95; // 95% of content width
-    const imgHeight = (300 * imgWidth) / 800; // Use actual chart height
-    
-    this.doc.image(imageBuffer, this.pageMargin, this.currentY, {
-      width: imgWidth,
-      height: imgHeight
-    });
-    
-    this.currentY += imgHeight + 10;
+    // Use pre-generated chart image
+    const chartImage = this.chartImages[chartKey];
+    if (chartImage) {
+      this.embedBase64Image(chartImage);
+    } else {
+      console.warn(`[PDF Generator] Chart image not found: ${chartKey}`);
+      this.doc.fontSize(10).fillColor(this.colors.danger)
+        .text('Chart not available', this.pageMargin, this.currentY);
+      this.currentY += 20;
+    }
   }
 
   /**
-   * Add line chart
+   * Add line chart (uses pre-generated image)
    */
   private async addLineChart(
     data: Array<{label: string; values: Array<{name: string; value: number; color: string}>}>,
     xLabel: string = '',
-    yLabel: string = ''
+    yLabel: string = '',
+    chartKey: string = 'line'
   ) {
-    const chartHeight = 200; // Reduced from 250
+    const chartHeight = 200;
     
     if (this.needsNewPage(chartHeight)) {
       this.addPage();
     }
     
-    const datasets = data[0].values.map((_, index) => ({
-      label: data[0].values[index].name,
-      data: data.map(item => item.values[index].value),
-      borderColor: data[0].values[index].color,
-      backgroundColor: data[0].values[index].color,
-      tension: 0.3,
-      borderWidth: 2
-    }));
-    
-    const configuration = {
-      type: 'line' as const,
-      data: {
-        labels: data.map(item => item.label),
-        datasets: datasets
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: {
-          legend: {
-            position: 'top' as const,
-            labels: {
-              font: {
-                size: 11
-              },
-              padding: 8
-            }
-          },
-          title: {
-            display: false
-          }
-        },
-        scales: {
-          y: {
-            beginAtZero: true,
-            ticks: {
-              font: {
-                size: 10
-              }
-            },
-            title: {
-              display: !!yLabel,
-              text: yLabel,
-              font: {
-                size: 12
-              }
-            }
-          },
-          x: {
-            ticks: {
-              font: {
-                size: 10
-              }
-            },
-            title: {
-              display: !!xLabel,
-              text: xLabel,
-              font: {
-                size: 12
-              }
-            }
-          }
-        }
-      }
-    };
-    
-    const imageBuffer = await this.chartGenerator.renderToBuffer(configuration as any);
-    
-    const imgWidth = this.contentWidth * 0.95; // 95% of content width
-    const imgHeight = (300 * imgWidth) / 800; // Use actual chart height
-    
-    this.doc.image(imageBuffer, this.pageMargin, this.currentY, {
-      width: imgWidth,
-      height: imgHeight
-    });
-    
-    this.currentY += imgHeight + 10;
+    // Use pre-generated chart image
+    const chartImage = this.chartImages[chartKey];
+    if (chartImage) {
+      this.embedBase64Image(chartImage);
+    } else {
+      console.warn(`[PDF Generator] Chart image not found: ${chartKey}`);
+      this.doc.fontSize(10).fillColor(this.colors.danger)
+        .text('Chart not available', this.pageMargin, this.currentY);
+      this.currentY += 20;
+    }
   }
 
   /**
