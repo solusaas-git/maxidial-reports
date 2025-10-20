@@ -7,10 +7,7 @@
     "app/api/reports/generate-pdf/route.ts": {
       "maxDuration": 60,
       "memory": 3008,
-      "includeFiles": [
-        "node_modules/canvas/build/Release/**",
-        "node_modules/pdfkit/js/data/**"
-      ]
+      "includeFiles": "node_modules/{canvas/build/Release,pdfkit/js/data}/**"
     }
   }
 }
