@@ -2,7 +2,7 @@
   "buildCommand": "npm run build",
   "outputDirectory": ".next",
   "framework": "nextjs",
-  "regions": ["iad1"],
+  "regions": ["sfo1"],
   "functions": {
     "app/api/**/*.ts": {
       "includeFiles": "node_modules/canvas/build/**"
