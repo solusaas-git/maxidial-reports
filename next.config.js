@@ -1,4 +1,6 @@
 /** @type {import('next').NextConfig} */
+const path = require('path');
+
 const nextConfig = {
   reactStrictMode: true,
   webpack: (config, { isServer }) => {
@@ -14,6 +16,15 @@ const nextConfig = {
           'chartjs-node-canvas'
         );
       }
+      
+      // Copy PDFKit font files to the output directory
+      config.module.rules.push({
+        test: /\.afm$/,
+        type: 'asset/resource',
+        generator: {
+          filename: 'static/fonts/[name][ext]'
+        }
+      });
     }
     return config;
   },
